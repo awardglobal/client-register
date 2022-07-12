@@ -46,7 +46,7 @@ export default function FieldDecorator({
   } = useFormContext();
   useEffect(() => {
     if (!visible && setNullCondition) {
-      setValue(name, null);
+      setValue(name, undefined);
     }
   }, [visible, setNullCondition, name, setValue]);
   useEffect(() => {
@@ -54,6 +54,7 @@ export default function FieldDecorator({
       setValue(name, defaultValue);
     }
   }, [setValue, name, defaultValue]);
+  errors[name] && console.log(errors[name]);
   return visible ? (
     <div
       className={classnames(`flex relative`, {

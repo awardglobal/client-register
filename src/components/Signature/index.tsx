@@ -1,17 +1,27 @@
-import React, { Component } from 'react';
+import { Component } from 'react';
 import SignaturePad from 'react-signature-canvas';
 import { Button, Checkbox } from '@douyinfe/semi-ui';
 import styles from './index.module.scss';
 import { SectionTitle } from '../Section';
 
-class Signature extends Component {
+interface PropsType {
+  onChange?: (value: any) => void;
+  errors?: any;
+}
+
+class Signature extends Component<PropsType> {
   state = { imgUrl: null };
   sigPad: any = {};
   clear = () => {
     this.sigPad.clear();
     this.setState({ imgUrl: null });
+    this.props.onChange?.(null);
   };
   confirm = () => {
+    this.sigPad
+      .getCanvas()
+      .toBlob((b: Blob) => this.props.onChange?.(new File([b], 'sign.png')));
+
     this.setState({ imgUrl: this.sigPad.getCanvas().toDataURL('image/png') });
   };
   render() {
@@ -19,16 +29,17 @@ class Signature extends Component {
     return (
       <div>
         <SectionTitle>信息确认及签名</SectionTitle>
+
         <Checkbox
-          // className=' border-t-4 pt-6 border-blue-600 '
+          // className =' border-t-4 pt-6 border-blue-600 '
           extra="Please confirm all the information provided is true and correct"
         >
           请确认以上所提供信息是真实和正确的，并且确认提交
         </Checkbox>
-        <br />
+
         <Checkbox
           extra="I agree to terms and conditions"
-          className="w-400 mb-4"
+          // className="w-400 mb-4"
           // style={{ width: 400  }}
         >
           我已阅读并同意以上
@@ -37,7 +48,10 @@ class Signature extends Component {
           </a>
           。
         </Checkbox>
-        {imgUrl ? <img src={imgUrl} className={styles.imgUrl} /> : null}
+
+        <br />
+
+        {imgUrl && <img src={imgUrl} className={styles.imgUrl} />}
         <SignaturePad
           canvasProps={{ className: styles.signPad }}
           ref={(ref) => {
@@ -56,6 +70,13 @@ class Signature extends Component {
           </Button>
           <Button onClick={this.clear}>重签 Resign</Button>
         </div>
+        {this.props.errors.signature ? (
+          <div className="text-red-500 text-sm font-semibold ">
+            请确认信息并签名
+          </div>
+        ) : (
+          <></>
+        )}
       </div>
     );
   }

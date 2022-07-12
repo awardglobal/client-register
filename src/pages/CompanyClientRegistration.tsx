@@ -223,13 +223,10 @@ export default function IndividualClientRegistration() {
                   <>
                     <SectionTitle isTop>账户主要持有人</SectionTitle>
                     <PageSection>
-                      {/* <FieldDecorator label="名字 FirstName" name="firstName">
+                      <FieldDecorator label="名字 FirstName" name="firstName">
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator label="姓氏 LastName" name="lastName">
-                        <Input />
-                      </FieldDecorator> */}
-                      <FieldDecorator label="姓名 Name" name="name">
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator label="职位 Position" name="position">

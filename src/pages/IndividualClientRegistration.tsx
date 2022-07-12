@@ -1,8 +1,15 @@
-import { FormProvider, useForm } from 'react-hook-form';
+import { FormProvider, useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import FieldDecorator from '@/components/FieldDecorator';
-import { DatePicker, Input, Modal, Select, Steps } from '@douyinfe/semi-ui';
+import {
+  Checkbox,
+  DatePicker,
+  Input,
+  Modal,
+  Select,
+  Steps,
+} from '@douyinfe/semi-ui';
 import { IconChevronLeft, IconChevronRight } from '@douyinfe/semi-icons';
 import { CSSTransition, SwitchTransition } from 'react-transition-group';
 import PageSection from './PageSection';
@@ -12,30 +19,192 @@ import classnames from 'classnames';
 import usePage from './usePage';
 import UploadFile from '@/components/UploadFile';
 import { SectionTitle } from '@/components/Section';
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Signature from '@/components/Signature';
 import complete from '@/assets/images/complete.svg';
 
 const schema = yup
   .object({
-    // email: yup.string().email().required('请输入邮箱'),
-    name: yup.string().required('请输入姓名'),
+    signature: yup.mixed().required('请确认信息并签名'),
+    choose1: yup.boolean().required('请选择'),
+    // firstName: yup.string().required('请输入姓名'),
+    // lastName: yup.string().required('请输入姓氏'),
+    // gender: yup.string().required('请选择性别'),
+    // dob: yup.string().required('请选择出生日期'),
+    // email: yup.string().required('请输入邮箱'),
+    // phone: yup.string().required('请输入联系号码'),
+    // saleId: yup.string().required('请选择业务员'),
+    // purpose: yup.string().required('请选择汇款目的'),
+    // otherPurpose: yup.string().required('请输入其他汇款目的'),
+    // country: yup.string().required('请输入国家'),
+    // state: yup.string().required('请输入所在州/省'),
+    // suburb: yup.string().required('请输入区'),
+    // address: yup.string().required('请输入地址'),
+    // postcode: yup.string().required('请输入邮编'),
+    // occupation: yup.string().required('请输入职业'),
+    // employerName: yup.string().required('请输入雇主名字'),
+    // annualIncome: yup.string().required('请输入年收入'),
+    // sourceOfIncome: yup.string().required('请选择收入来源'),
+    // document1Front: yup.string().required('请上传身份证正面'),
+    // document1Back: yup.string().required('请上传身份证反面'),
+    // document2Front: yup.string().required('请上传护照正面'),
+    // document2Back: yup.string().required('请上传护照反面'),
+    // facePic: yup.string().required('请上传人脸识别照片'),
+
+    // b_beneficiaryType: yup.number().required('请选择收款人类型'),
+    b_bankName: yup.string().required('请输入银行名称'),
+    // b_branchName: yup.string().required('请输入银行支行'),
+    // b_accountName: yup.string().required('请输入银行账号名'),
+    // b_accountNumber: yup.string().required('请输入银行账号'),
+    // b_bsb_swiftCode: yup.string().required('请输入银行BSB/SWIFT代码'),
+    // b_firstName: yup.string().when('b_beneficiaryType', {
+    //   is: (arg: number) => arg === 1,
+    //   then: yup.string().required('请输入收款人姓名'),
+    // }),
+    // b_lastName: yup.string().when('b_beneficiaryType', {
+    //   is: (arg: number) => arg === 1,
+    //   then: yup.string().required('请输入收款人姓氏'),
+    // }),
+    // b_dob: yup.string().when('b_beneficiaryType', {
+    //   is: (arg: number) => arg === 1,
+    //   then: yup.string().required('请选择收款人生日'),
+    // }),
+    // b_phone: yup.string().when('b_beneficiaryType', {
+    //   is: (arg: number) => arg === 1,
+    //   then: yup.string().required('请输入收款人联系号码'),
+    // }),
+    // b_occupation: yup.string().when('b_beneficiaryType', {
+    //   is: (arg: number) => arg === 1,
+    //   then: yup.string().required('请输入收款人职业'),
+    // }),
+    // b_relationship: yup.string().when('b_beneficiaryType', {
+    //   is: (arg: number) => arg === 1,
+    //   then: yup.string().required('请选择收款人关系'),
+    // }),
+    // b_country: yup.string().when('b_beneficiaryType', {
+    //   is: (arg: number) => arg === 1,
+    //   then: yup.string().required('请输入收款人所在国家'),
+    // }),
+    // b_state: yup.string().when('b_beneficiaryType', {
+    //   is: (arg: number) => arg === 1,
+    //   then: yup.string().required('请输入收款人所在州/省'),
+    // }),
+    // b_suburb: yup.string().when('b_beneficiaryType', {
+    //   is: (arg: number) => arg === 1,
+    //   then: yup.string().required('请输入收款人所在区'),
+    // }),
+    // b_address: yup.string().when('b_beneficiaryType', {
+    //   is: (arg: number) => arg === 1,
+    //   then: yup.string().required('请输入收款人街道地址'),
+    // }),
+    // b_postcode: yup.string().when('b_beneficiaryType', {
+    //   is: (arg: number) => arg === 1,
+    //   then: yup.string().required('请输入收款人邮编'),
+    // }),
+    // b_document1Front: yup.string().when('b_beneficiaryType', {
+    //   is: (arg: number) => arg === 1,
+    //   then: yup.string().required('请上传收款人身份证正面'),
+    // }),
+    // b_document1Back: yup.string().when('b_beneficiaryType', {
+    //   is: (arg: number) => arg === 1,
+    //   then: yup.string().required('请上传收款人身份证反面'),
+    // }),
+    // b_trustAccount: yup.number().when('b_beneficiaryType', {
+    //   is: (arg: number) => arg === 1,
+    //   then: yup.number().required('请选择委托账户类型'),
+    // }),
+    // b_companyName: yup.string().when(['b_beneficiaryType', 'b_trustAccount'], {
+    //   is: (arg: number, arg2: number) => arg === 1 && arg2 === 1,
+    //   then: yup.string().required('请输入公司名称'),
+    // }),
+    // b_companyAddress: yup
+    //   .string()
+    //   .when(['b_beneficiaryType', 'b_trustAccount'], {
+    //     is: (arg: number, arg2: number) => arg === 1 && arg2 === 1,
+    //     then: yup.string().required('请输入公司地址'),
+    //   }),
+    // b_companyABN: yup.string().when(['b_beneficiaryType', 'b_trustAccount'], {
+    //   is: (arg: number, arg2: number) => arg === 1 && arg2 === 1,
+    //   then: yup.string().required('请输入公司ABN'),
+    // }),
   })
   .required();
+const pageField: { [props: string]: string[] } = {
+  '1': [
+    'firstName',
+    'lastName',
+    'gender',
+    'dob',
+    'email',
+    'phone',
+    'saleId',
+    'purpose',
+    'otherPurpose',
+    'country',
+    'state',
+    'suburb',
+    'address',
+    'postcode',
+  ],
+  '2': [
+    'occupation',
+    'employerName',
+    'annualIncome',
+    'sourceOfIncome',
+    'document1Front',
+    'document1Back',
+    'document2Front',
+    'document2Back',
+    'facePic',
+  ],
+  '3': [
+    'choose1',
+    'b_beneficiaryType',
+    'b_bankName',
+    'b_branchName',
+    'b_accountName',
+    'b_accountNumber',
+    'b_bsb_swiftCode',
+    'b_firstName',
+    'b_lastName',
+    'b_dob',
+    'b_phone',
+    'b_occupation',
+    'b_relationship',
+    'b_country',
+    'b_state',
+    'b_suburb',
+    'b_address',
+    'b_postcode',
+    'b_document1Front',
+    'b_document1Back',
+    'b_trustAccount',
+    'b_companyName',
+    'b_companyAddress',
+    'b_companyABN',
+  ],
+};
 
 export default function IndividualClientRegistration() {
   const { page, isFirstPage, isLastPage, nextPage, previousPage } = usePage({
     maxPage: 4,
   });
   const contentRef = useRef<HTMLDivElement>(null);
+  const [saleList, setSaleList] = useState<any>([]);
   const methods = useForm({
     resolver: yupResolver(schema),
     mode: 'onTouched',
   });
-
-  const handleNext = (e?: any) => {
+  console.log('走这里', methods.formState.errors);
+  const handleNext = async (e?: any) => {
     window.scrollTo(0, 0);
     e?.preventDefault();
+    await methods.trigger(pageField[page] ?? []);
+    console.log('111', isLastPage, Object.values(methods.formState.errors));
+    if (!isLastPage && Object.values(methods.formState.errors).length === 0) {
+      console.log('走这里', methods.formState.errors);
+      // nextPage();
+    } else return;
     if (page === 3) {
       Modal.confirm({
         title: '确认提交?',
@@ -50,14 +219,21 @@ export default function IndividualClientRegistration() {
   const handlePrevious = () => {
     previousPage();
   };
-  const [purpose, b_beneficiaryType, comAccount] = methods.watch([
+  const [purpose, b_beneficiaryType, b_trustAccount] = methods.watch([
     'purpose',
     'b_beneficiaryType',
-    'comAccount',
+    'b_trustAccount',
   ]);
   const handleSubmit = methods.handleSubmit((values) => {
-    console.log(values);
+    console.log('总的值', values);
   });
+
+  useEffect(() => {
+    setSaleList([
+      { id: 1, name: '销售1' },
+      { id: 2, name: '销售2' },
+    ]);
+  }, []);
   return (
     <div className="register w-full h-full flex flex-col px-20 items-center overflow-auto">
       <FormProvider {...methods}>
@@ -69,7 +245,7 @@ export default function IndividualClientRegistration() {
             }}
             classNames={'fade'}
             onExited={() => {
-              console.log('exited');
+              // console.log('exited');
               contentRef.current?.scrollIntoView();
             }}
           >
@@ -92,22 +268,25 @@ export default function IndividualClientRegistration() {
                   <>
                     <SectionTitle isTop>个人信息</SectionTitle>
                     <PageSection>
-                      {/* <FieldDecorator label="名字 FirstName" name="firstName">
-                        <Input />
-                      </FieldDecorator>
-                      <FieldDecorator label="姓氏 LastName" name="lastName">
+                      <FieldDecorator
+                        required
+                        label="名字 FirstName"
+                        name="firstName"
+                      >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
-                        label="常用名 PreferredName"
-                        name="preferredName"
+                        required
+                        label="姓氏 LastName"
+                        name="lastName"
                       >
                         <Input />
-                      </FieldDecorator> */}
-                      <FieldDecorator label="姓名 Name" name="name">
-                        <Input />
                       </FieldDecorator>
-                      <FieldDecorator label="性别 Gender" name="gender">
+                      <FieldDecorator
+                        required
+                        label="性别 Gender"
+                        name="gender"
+                      >
                         <Select filter showClear className="w-full">
                           <Select.Option value={0}>男 Male</Select.Option>
                           <Select.Option value={1}>女 Female</Select.Option>
@@ -116,22 +295,49 @@ export default function IndividualClientRegistration() {
                           </Select.Option>
                         </Select>
                       </FieldDecorator>
-                      <FieldDecorator label="出生日期 Date of Birth" name="dob">
+                      <FieldDecorator
+                        required
+                        label="出生日期 Date of Birth"
+                        name="dob"
+                      >
                         <DatePicker
                           className="w-full"
                           placeholder={'Select date'}
                         />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="电子邮箱 Email Address"
                         name="email"
                       >
                         <Input />
                       </FieldDecorator>
-                      <FieldDecorator label="联系号码 Phone" name="phone">
+                      <FieldDecorator
+                        required
+                        label="联系号码 Phone"
+                        name="phone"
+                      >
                         <Input />
                       </FieldDecorator>
-                      <FieldDecorator label="业务员 Salesman" name="salesMan">
+                      <FieldDecorator label="业务员 Sale" name="saleId">
+                        <Select
+                          filter
+                          showClear
+                          // onSearch={handleSaleSearch}
+                          className="w-full"
+                        >
+                          {saleList?.map((item: any) => (
+                            <Select.Option key={item.id} value={item.id}>
+                              {item.name}
+                            </Select.Option>
+                          ))}
+                        </Select>
+                      </FieldDecorator>
+                      {/* <FieldDecorator
+                        required
+                        label="业务员 Sale"
+                        name="salesMan"
+                      >
                         <Select filter showClear className="w-full">
                           <Select.Option key="Echo Yu" value="Echo Yu">
                             Echo Yu
@@ -140,8 +346,12 @@ export default function IndividualClientRegistration() {
                             Francis Li
                           </Select.Option>
                         </Select>
-                      </FieldDecorator>
-                      <FieldDecorator label="汇款目的 Purpose" name="purpose">
+                      </FieldDecorator> */}
+                      <FieldDecorator
+                        required
+                        label="汇款目的 Purpose"
+                        name="purpose"
+                      >
                         <Select filter showClear className="w-full">
                           <Select.Option key="Property" value="Property">
                             买房
@@ -194,23 +404,36 @@ export default function IndividualClientRegistration() {
                     </PageSection>
                     <SectionTitle>居住信息</SectionTitle>
                     <PageSection>
-                      <FieldDecorator label="国家 Country" name="country">
-                        <Input />
-                      </FieldDecorator>
-                      <FieldDecorator label="州 State/省 Province" name="state">
-                        <Input />
-                      </FieldDecorator>
-                      <FieldDecorator label="区 Suburb" name="suburb">
+                      <FieldDecorator
+                        required
+                        label="国家 Country"
+                        name="country"
+                      >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
+                        label="州 State/省 Province"
+                        name="state"
+                      >
+                        <Input />
+                      </FieldDecorator>
+                      <FieldDecorator required label="区 Suburb" name="suburb">
+                        <Input />
+                      </FieldDecorator>
+                      <FieldDecorator
+                        required
                         className="lg:col-span-2 md:col-span-1"
                         label="街道地址 Address"
                         name="address"
                       >
                         <Input />
                       </FieldDecorator>
-                      <FieldDecorator label="邮政编码 Postcode" name="postcode">
+                      <FieldDecorator
+                        required
+                        label="邮政编码 Postcode"
+                        name="postcode"
+                      >
                         <Input />
                       </FieldDecorator>
                     </PageSection>
@@ -222,18 +445,21 @@ export default function IndividualClientRegistration() {
 
                     <PageSection>
                       <FieldDecorator
+                        required
                         label="职业与行业 Occupation & Industry"
                         name="occupation"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="雇主名字 Employer's Name"
                         name="employerName"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="年收入 Annual Income"
                         name="annualIncome"
                       >
@@ -256,8 +482,9 @@ export default function IndividualClientRegistration() {
                         </Select>
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="收入来源 Source of Income"
-                        name="incomeSource"
+                        name="sourceOfIncome"
                       >
                         <Input />
                       </FieldDecorator>
@@ -274,32 +501,37 @@ export default function IndividualClientRegistration() {
 
                     <PageSection>
                       <FieldDecorator
+                        required
                         label="身份证明1正面 front side of the identity certificate 1."
-                        name="document1FrontId"
+                        name="document1Front"
                       >
                         <UploadFile />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="身份证明1背面  back side of the identity certificate 1."
-                        name="document1BackId"
+                        name="document1Back"
                       >
                         <UploadFile />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="身份证明2正面 front side of the identity certificate 2."
-                        name="document2FrontId"
+                        name="document2Front"
                       >
                         <UploadFile />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="身份证明2背面  back side of the identity certificate 2"
-                        name="document2BackId"
+                        name="document2Back"
                       >
                         <UploadFile />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="人脸识别照片 face recognition"
-                        name="facePicId"
+                        name="facePic"
                       >
                         <UploadFile />
                       </FieldDecorator>
@@ -311,6 +543,7 @@ export default function IndividualClientRegistration() {
                     <SectionTitle isTop>收款人账户信息</SectionTitle>
                     <PageSection>
                       <FieldDecorator
+                        required
                         label="收款人类型 Payee Type"
                         name="b_beneficiaryType"
                       >
@@ -324,30 +557,35 @@ export default function IndividualClientRegistration() {
                         </Select>
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="银行名称 Bank Name"
                         name="b_bankName"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="开户行支行 Branch Name"
                         name="b_branchName"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="账户名称 Account Name"
                         name="b_accountName"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="账户信息 Account Number"
                         name="b_accountNumber"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="账户信息 BSB/Swift Code"
                         name="b_bsb_swiftCode"
                       >
@@ -360,28 +598,43 @@ export default function IndividualClientRegistration() {
                   <>
                     <SectionTitle>收款人个人信息</SectionTitle>
                     <PageSection>
-                      <FieldDecorator label="收款人姓名 Name" name="b_name">
+                      <FieldDecorator
+                        required
+                        label="名字 FirstName"
+                        name="b_firstName"
+                      >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
+                        label="姓氏 LastName"
+                        name="b_lastName"
+                      >
+                        <Input />
+                      </FieldDecorator>
+                      <FieldDecorator
+                        required
                         label="收款人生日 Date of Birth"
                         name="b_dob"
                       >
                         <DatePicker className="w-full" />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="收款人联系方式 Phone"
                         name="b_phone"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="收款人职业 Occupation"
                         name="b_occupation"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="与交易人关系 Relationship"
                         name="b_relation"
                       >
@@ -390,19 +643,29 @@ export default function IndividualClientRegistration() {
                     </PageSection>
                     <SectionTitle>收款人居住信息</SectionTitle>
                     <PageSection>
-                      <FieldDecorator label="国家 Country" name="b_country">
+                      <FieldDecorator
+                        required
+                        label="国家 Country"
+                        name="b_country"
+                      >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="州 State/省 Province"
                         name="b_state"
                       >
                         <Input />
                       </FieldDecorator>
-                      <FieldDecorator label="区 Suburb" name="b_suburb">
+                      <FieldDecorator
+                        required
+                        label="区 Suburb"
+                        name="b_suburb"
+                      >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         className="lg:col-span-2 md:col-span-1"
                         label="街道地址 Address"
                         name="b_address"
@@ -410,6 +673,7 @@ export default function IndividualClientRegistration() {
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="邮政编码 Postcode"
                         name="b_postcode"
                       >
@@ -424,30 +688,26 @@ export default function IndividualClientRegistration() {
                       transferring to your personal account.
                     </div>
                     <PageSection>
-                      <FieldDecorator label="转账类型 " name="transother">
-                        <Select showClear className="w-full">
-                          <Select.Option key="" value={0}>
-                            转到其他人银行账户 Transfer to Other's Account
-                          </Select.Option>
-                        </Select>
-                      </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="收款人证件正面 front side of payee's ID"
-                        name="document1FrontId"
+                        name="b_document1Front"
                       >
                         <UploadFile />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="收款人证件背面 back side of payee's ID"
-                        name="document1BackId"
+                        name="b_document1Back"
                       >
                         <UploadFile />
                       </FieldDecorator>
                     </PageSection>
                     <PageSection>
                       <FieldDecorator
-                        label="账户类型"
-                        name="comAccount"
+                        required
+                        label="委托账户类型"
+                        name="b_trustAccount"
                         className="mt-6"
                       >
                         <Select showClear className="w-full">
@@ -460,28 +720,31 @@ export default function IndividualClientRegistration() {
                         </Select>
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         className="mt-6"
-                        visible={comAccount === 1}
+                        visible={b_trustAccount === 1}
                         hiddenWhenInvisible
                         label="公司名称 Company Name"
-                        name="companyName"
+                        name="b_companyName"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         className="mt-6"
-                        visible={comAccount === 1}
+                        visible={b_trustAccount === 1}
                         hiddenWhenInvisible
                         label="公司地址 Company Address"
-                        name="companyName"
+                        name="b_companyAddress"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
-                        visible={comAccount === 1}
+                        required
+                        visible={b_trustAccount === 1}
                         hiddenWhenInvisible
                         label="公司ABN Company ABN"
-                        name="companyName"
+                        name="b_companyABN"
                       >
                         <Input />
                       </FieldDecorator>
@@ -490,7 +753,27 @@ export default function IndividualClientRegistration() {
                 )}
                 {page === 3 && (
                   <>
-                    <Signature />
+                    <FieldDecorator
+                      name="choose1"
+                      valuePropName="checked"
+                      transformOut={(val: any) => val.target.checked}
+                    >
+                      <Checkbox extra="Please confirm all the information provided is true and correct">
+                        请确认以上所提供信息是真实和正确的，并且确认提交
+                      </Checkbox>
+                    </FieldDecorator>
+                    <Controller
+                      name="signature"
+                      control={methods.control}
+                      render={({ field }) => {
+                        return (
+                          <Signature
+                            onChange={field.onChange}
+                            errors={methods.formState.errors}
+                          />
+                        );
+                      }}
+                    />
                   </>
                 )}
                 {page === 4 && (
