@@ -16,6 +16,7 @@ specifiers:
   autoprefixer: ^10.4.7
   axios: ^0.27.2
   classnames: ^2.3.1
+  date-fns: ^2.28.0
   eslint: ^8.17.0
   eslint-config-ali: ^14.0.0
   eslint-config-prettier: ^8.5.0
@@ -51,6 +52,7 @@ dependencies:
   '@hookform/resolvers': 2.9.3_react-hook-form@7.33.1
   axios: 0.27.2
   classnames: 2.3.1
+  date-fns: 2.28.0
   prop-types: 15.8.1
   rc-progress: 3.4.0_ef5jwxihqo6n7gxfmzogljlgcm
   rc-upload: 4.3.4_ef5jwxihqo6n7gxfmzogljlgcm

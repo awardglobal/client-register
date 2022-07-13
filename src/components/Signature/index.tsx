@@ -1,8 +1,7 @@
 import { Component } from 'react';
 import SignaturePad from 'react-signature-canvas';
-import { Button, Checkbox } from '@douyinfe/semi-ui';
+import { Button } from '@douyinfe/semi-ui';
 import styles from './index.module.scss';
-import { SectionTitle } from '../Section';
 
 interface PropsType {
   onChange?: (value: any) => void;
@@ -28,29 +27,6 @@ class Signature extends Component<PropsType> {
     const { imgUrl } = this.state;
     return (
       <div>
-        <SectionTitle>信息确认及签名</SectionTitle>
-
-        <Checkbox
-          // className =' border-t-4 pt-6 border-blue-600 '
-          extra="Please confirm all the information provided is true and correct"
-        >
-          请确认以上所提供信息是真实和正确的，并且确认提交
-        </Checkbox>
-
-        <Checkbox
-          extra="I agree to terms and conditions"
-          // className="w-400 mb-4"
-          // style={{ width: 400  }}
-        >
-          我已阅读并同意以上
-          <a style={{ color: 'blue' }} href="www.baidu.com">
-            条款
-          </a>
-          。
-        </Checkbox>
-
-        <br />
-
         {imgUrl && <img src={imgUrl} className={styles.imgUrl} />}
         <SignaturePad
           canvasProps={{ className: styles.signPad }}

@@ -7,7 +7,7 @@ import {
 } from '@douyinfe/semi-icons';
 import { Button, Toast } from '@douyinfe/semi-ui';
 import Upload from 'rc-upload';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface PropsType {
   onChange?: (value: any) => void;
@@ -15,13 +15,26 @@ interface PropsType {
 }
 
 export default function UploadFile({ onChange, value }: PropsType) {
+  useEffect(() => {
+    if (value) {
+      setFileBlob(value);
+      const reader = new FileReader();
+      reader.addEventListener(
+        'load',
+        () => {
+          setImgSmall(reader.result as string);
+        },
+        false
+      );
+      reader.readAsDataURL(value);
+    }
+  }, []);
+
   const [fileBlob, setFileBlob] = useState<Blob>();
   const [imgSmall, setImgSmall] = useState<string>('');
 
   const beforeUpload = (file: File) => {
     onChange?.(file);
-    // const fmData = new FormData();
-    // fmData.append('file', file);
     const isLt2M = file.size / 1024 / 1024 < 2;
     if (!isLt2M) {
       Toast.error('图片大小不能超过2M!');

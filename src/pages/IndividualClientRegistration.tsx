@@ -1,6 +1,7 @@
 import { FormProvider, useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { format } from 'date-fns';
 import FieldDecorator from '@/components/FieldDecorator';
 import {
   Checkbox,
@@ -9,6 +10,7 @@ import {
   Modal,
   Select,
   Steps,
+  Toast,
 } from '@douyinfe/semi-ui';
 import { IconChevronLeft, IconChevronRight } from '@douyinfe/semi-icons';
 import { CSSTransition, SwitchTransition } from 'react-transition-group';
@@ -22,111 +24,117 @@ import { SectionTitle } from '@/components/Section';
 import { useRef, useState, useEffect } from 'react';
 import Signature from '@/components/Signature';
 import complete from '@/assets/images/complete.svg';
+import { addIndividual, saleIdList } from '@/services/register';
+import UploadFace from '@/components/UploadFace';
 
 const schema = yup
   .object({
-    signature: yup.mixed().required('请确认信息并签名'),
-    choose1: yup.boolean().required('请选择'),
-    // firstName: yup.string().required('请输入姓名'),
-    // lastName: yup.string().required('请输入姓氏'),
-    // gender: yup.string().required('请选择性别'),
-    // dob: yup.string().required('请选择出生日期'),
-    // email: yup.string().required('请输入邮箱'),
-    // phone: yup.string().required('请输入联系号码'),
-    // saleId: yup.string().required('请选择业务员'),
-    // purpose: yup.string().required('请选择汇款目的'),
-    // otherPurpose: yup.string().required('请输入其他汇款目的'),
-    // country: yup.string().required('请输入国家'),
-    // state: yup.string().required('请输入所在州/省'),
-    // suburb: yup.string().required('请输入区'),
-    // address: yup.string().required('请输入地址'),
-    // postcode: yup.string().required('请输入邮编'),
-    // occupation: yup.string().required('请输入职业'),
-    // employerName: yup.string().required('请输入雇主名字'),
-    // annualIncome: yup.string().required('请输入年收入'),
-    // sourceOfIncome: yup.string().required('请选择收入来源'),
-    // document1Front: yup.string().required('请上传身份证正面'),
-    // document1Back: yup.string().required('请上传身份证反面'),
-    // document2Front: yup.string().required('请上传护照正面'),
-    // document2Back: yup.string().required('请上传护照反面'),
-    // facePic: yup.string().required('请上传人脸识别照片'),
+    firstName: yup.string().required('请输入姓名'),
+    lastName: yup.string().required('请输入姓氏'),
+    gender: yup.string().required('请选择性别'),
+    dob: yup.string().required('请选择出生日期'),
+    email: yup.string().required('请输入邮箱').email('邮箱格式错误'),
+    phone: yup.string().required('请输入联系号码'),
+    saleId: yup.string().required('请选择业务员'),
+    purpose: yup.string().required('请选择汇款目的'),
+    otherPurpose: yup.string().when('purpose', {
+      is: 'Other',
+      then: yup.string().required('请输入其他汇款目的'),
+    }),
+    country: yup.string().required('请输入国家'),
+    state: yup.string().required('请输入所在州/省'),
+    suburb: yup.string().required('请输入区'),
+    address: yup.string().required('请输入地址'),
+    postcode: yup.string().required('请输入邮编'),
+    occupation: yup.string().required('请输入职业'),
+    employerName: yup.string().required('请输入雇主名字'),
+    annualIncome: yup.string().required('请输入年收入'),
+    sourceOfIncome: yup.string().required('请选择收入来源'),
+    document1Front: yup.mixed().required('请上传身份证正面'),
+    document1Back: yup.mixed().required('请上传身份证反面'),
+    document2Front: yup.mixed().required('请上传护照正面'),
+    document2Back: yup.mixed().required('请上传护照反面'),
+    facePic: yup.mixed().required('请上传人脸识别照片'),
 
-    // b_beneficiaryType: yup.number().required('请选择收款人类型'),
+    b_beneficiaryType: yup.number().required('请选择收款人类型'),
     b_bankName: yup.string().required('请输入银行名称'),
-    // b_branchName: yup.string().required('请输入银行支行'),
-    // b_accountName: yup.string().required('请输入银行账号名'),
-    // b_accountNumber: yup.string().required('请输入银行账号'),
-    // b_bsb_swiftCode: yup.string().required('请输入银行BSB/SWIFT代码'),
-    // b_firstName: yup.string().when('b_beneficiaryType', {
-    //   is: (arg: number) => arg === 1,
-    //   then: yup.string().required('请输入收款人姓名'),
-    // }),
-    // b_lastName: yup.string().when('b_beneficiaryType', {
-    //   is: (arg: number) => arg === 1,
-    //   then: yup.string().required('请输入收款人姓氏'),
-    // }),
-    // b_dob: yup.string().when('b_beneficiaryType', {
-    //   is: (arg: number) => arg === 1,
-    //   then: yup.string().required('请选择收款人生日'),
-    // }),
-    // b_phone: yup.string().when('b_beneficiaryType', {
-    //   is: (arg: number) => arg === 1,
-    //   then: yup.string().required('请输入收款人联系号码'),
-    // }),
-    // b_occupation: yup.string().when('b_beneficiaryType', {
-    //   is: (arg: number) => arg === 1,
-    //   then: yup.string().required('请输入收款人职业'),
-    // }),
-    // b_relationship: yup.string().when('b_beneficiaryType', {
-    //   is: (arg: number) => arg === 1,
-    //   then: yup.string().required('请选择收款人关系'),
-    // }),
-    // b_country: yup.string().when('b_beneficiaryType', {
-    //   is: (arg: number) => arg === 1,
-    //   then: yup.string().required('请输入收款人所在国家'),
-    // }),
-    // b_state: yup.string().when('b_beneficiaryType', {
-    //   is: (arg: number) => arg === 1,
-    //   then: yup.string().required('请输入收款人所在州/省'),
-    // }),
-    // b_suburb: yup.string().when('b_beneficiaryType', {
-    //   is: (arg: number) => arg === 1,
-    //   then: yup.string().required('请输入收款人所在区'),
-    // }),
-    // b_address: yup.string().when('b_beneficiaryType', {
-    //   is: (arg: number) => arg === 1,
-    //   then: yup.string().required('请输入收款人街道地址'),
-    // }),
-    // b_postcode: yup.string().when('b_beneficiaryType', {
-    //   is: (arg: number) => arg === 1,
-    //   then: yup.string().required('请输入收款人邮编'),
-    // }),
-    // b_document1Front: yup.string().when('b_beneficiaryType', {
-    //   is: (arg: number) => arg === 1,
-    //   then: yup.string().required('请上传收款人身份证正面'),
-    // }),
-    // b_document1Back: yup.string().when('b_beneficiaryType', {
-    //   is: (arg: number) => arg === 1,
-    //   then: yup.string().required('请上传收款人身份证反面'),
-    // }),
-    // b_trustAccount: yup.number().when('b_beneficiaryType', {
-    //   is: (arg: number) => arg === 1,
-    //   then: yup.number().required('请选择委托账户类型'),
-    // }),
-    // b_companyName: yup.string().when(['b_beneficiaryType', 'b_trustAccount'], {
-    //   is: (arg: number, arg2: number) => arg === 1 && arg2 === 1,
-    //   then: yup.string().required('请输入公司名称'),
-    // }),
-    // b_companyAddress: yup
-    //   .string()
-    //   .when(['b_beneficiaryType', 'b_trustAccount'], {
-    //     is: (arg: number, arg2: number) => arg === 1 && arg2 === 1,
-    //     then: yup.string().required('请输入公司地址'),
-    //   }),
-    // b_companyABN: yup.string().when(['b_beneficiaryType', 'b_trustAccount'], {
-    //   is: (arg: number, arg2: number) => arg === 1 && arg2 === 1,
-    //   then: yup.string().required('请输入公司ABN'),
-    // }),
+    b_branchName: yup.string().required('请输入银行支行'),
+    b_accountName: yup.string().required('请输入银行账号名'),
+    b_accountNumber: yup.string().required('请输入银行账号'),
+    b_bsb_swiftCode: yup.string().required('请输入银行BSB/SWIFT代码'),
+    b_firstName: yup.string().when('b_beneficiaryType', {
+      is: (arg: number) => arg === 1,
+      then: yup.string().required('请输入收款人姓名'),
+    }),
+    b_lastName: yup.string().when('b_beneficiaryType', {
+      is: (arg: number) => arg === 1,
+      then: yup.string().required('请输入收款人姓氏'),
+    }),
+    b_dob: yup.string().when('b_beneficiaryType', {
+      is: (arg: number) => arg === 1,
+      then: yup.string().required('请选择收款人生日'),
+    }),
+    b_phone: yup.string().when('b_beneficiaryType', {
+      is: (arg: number) => arg === 1,
+      then: yup.string().required('请输入收款人联系号码'),
+    }),
+    b_occupation: yup.string().when('b_beneficiaryType', {
+      is: (arg: number) => arg === 1,
+      then: yup.string().required('请输入收款人职业'),
+    }),
+    b_relation: yup.string().when('b_beneficiaryType', {
+      is: (arg: number) => arg === 1,
+      then: yup.string().required('请选择收款人关系'),
+    }),
+    b_country: yup.string().when('b_beneficiaryType', {
+      is: (arg: number) => arg === 1,
+      then: yup.string().required('请输入收款人所在国家'),
+    }),
+    b_state: yup.string().when('b_beneficiaryType', {
+      is: (arg: number) => arg === 1,
+      then: yup.string().required('请输入收款人所在州/省'),
+    }),
+    b_suburb: yup.string().when('b_beneficiaryType', {
+      is: (arg: number) => arg === 1,
+      then: yup.string().required('请输入收款人所在区'),
+    }),
+    b_address: yup.string().when('b_beneficiaryType', {
+      is: (arg: number) => arg === 1,
+      then: yup.string().required('请输入收款人街道地址'),
+    }),
+    b_postcode: yup.string().when('b_beneficiaryType', {
+      is: (arg: number) => arg === 1,
+      then: yup.string().required('请输入收款人邮编'),
+    }),
+    b_document1Front: yup.mixed().when('b_beneficiaryType', {
+      is: (arg: number) => arg === 1,
+      then: yup.mixed().required('请上传收款人身份证正面'),
+    }),
+    b_document1Back: yup.mixed().when('b_beneficiaryType', {
+      is: (arg: number) => arg === 1,
+      then: yup.mixed().required('请上传收款人身份证反面'),
+    }),
+    b_trustAccount: yup.number().when('b_beneficiaryType', {
+      is: (arg: number) => arg === 1,
+      then: yup.number().required('请选择委托账户类型'),
+    }),
+    b_companyName: yup.string().when(['b_beneficiaryType', 'b_trustAccount'], {
+      is: (arg: number, arg2: number) => arg === 1 && arg2 === 1,
+      then: yup.string().required('请输入公司名称'),
+    }),
+    b_companyAddress: yup
+      .string()
+      .when(['b_beneficiaryType', 'b_trustAccount'], {
+        is: (arg: number, arg2: number) => arg === 1 && arg2 === 1,
+        then: yup.string().required('请输入公司地址'),
+      }),
+    b_companyABN: yup.string().when(['b_beneficiaryType', 'b_trustAccount'], {
+      is: (arg: number, arg2: number) => arg === 1 && arg2 === 1,
+      then: yup.string().required('请输入公司ABN'),
+    }),
+    choose1: yup.boolean().required('请选择').oneOf([true], '请确认上述信息'),
+    choose2: yup.boolean().required('请选择').oneOf([true], '请确认上述信息'),
+    signature: yup.mixed().required('请确认信息并签名'),
   })
   .required();
 const pageField: { [props: string]: string[] } = {
@@ -159,6 +167,7 @@ const pageField: { [props: string]: string[] } = {
   ],
   '3': [
     'choose1',
+    'choose2',
     'b_beneficiaryType',
     'b_bankName',
     'b_branchName',
@@ -170,7 +179,7 @@ const pageField: { [props: string]: string[] } = {
     'b_dob',
     'b_phone',
     'b_occupation',
-    'b_relationship',
+    'b_relation',
     'b_country',
     'b_state',
     'b_suburb',
@@ -182,6 +191,7 @@ const pageField: { [props: string]: string[] } = {
     'b_companyName',
     'b_companyAddress',
     'b_companyABN',
+    'signature',
   ],
 };
 
@@ -193,28 +203,26 @@ export default function IndividualClientRegistration() {
   const [saleList, setSaleList] = useState<any>([]);
   const methods = useForm({
     resolver: yupResolver(schema),
-    mode: 'onTouched',
+    mode: 'onChange',
   });
-  console.log('走这里', methods.formState.errors);
   const handleNext = async (e?: any) => {
     window.scrollTo(0, 0);
     e?.preventDefault();
-    await methods.trigger(pageField[page] ?? []);
-    console.log('111', isLastPage, Object.values(methods.formState.errors));
-    if (!isLastPage && Object.values(methods.formState.errors).length === 0) {
-      console.log('走这里', methods.formState.errors);
-      // nextPage();
-    } else return;
-    if (page === 3) {
-      Modal.confirm({
-        title: '确认提交?',
-        content: '请核实信息无误后提交',
-        onOk: handleSubmit,
-        centered: true,
-      });
-      return;
+    const validPage = await methods.trigger(pageField[page] ?? []);
+    if (!isLastPage && validPage) {
+      if (page !== 3) {
+        nextPage();
+      }
+      if (page === 3) {
+        Modal.confirm({
+          title: '确认提交?',
+          content: '请核实信息无误后提交',
+          onOk: handleSubmit,
+          centered: true,
+        });
+        return;
+      }
     }
-    nextPage();
   };
   const handlePrevious = () => {
     previousPage();
@@ -224,15 +232,24 @@ export default function IndividualClientRegistration() {
     'b_beneficiaryType',
     'b_trustAccount',
   ]);
-  const handleSubmit = methods.handleSubmit((values) => {
-    console.log('总的值', values);
+  const handleSubmit = methods.handleSubmit(async (values) => {
+    const { choose1, choose2, ...valueObj } = values;
+    const formData = new FormData();
+    for (const key in valueObj) {
+      formData.append(key, valueObj[key]);
+    }
+    const res: any = await addIndividual(formData as any);
+    if (res.code == 0) {
+      nextPage();
+    } else {
+      Toast.error(res.data.msg);
+    }
   });
 
   useEffect(() => {
-    setSaleList([
-      { id: 1, name: '销售1' },
-      { id: 2, name: '销售2' },
-    ]);
+    saleIdList().then((res: any) => {
+      setSaleList(res.list);
+    });
   }, []);
   return (
     <div className="register w-full h-full flex flex-col px-20 items-center overflow-auto">
@@ -245,7 +262,6 @@ export default function IndividualClientRegistration() {
             }}
             classNames={'fade'}
             onExited={() => {
-              // console.log('exited');
               contentRef.current?.scrollIntoView();
             }}
           >
@@ -299,6 +315,13 @@ export default function IndividualClientRegistration() {
                         required
                         label="出生日期 Date of Birth"
                         name="dob"
+                        transformOut={(value) =>
+                          `${format(
+                            new Date(value),
+                            'yyyy-MM-dd'
+                          )}T00:00:00.000Z`
+                        }
+                        transformIn={(value) => new Date(value)}
                       >
                         <DatePicker
                           className="w-full"
@@ -320,12 +343,7 @@ export default function IndividualClientRegistration() {
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator label="业务员 Sale" name="saleId">
-                        <Select
-                          filter
-                          showClear
-                          // onSearch={handleSaleSearch}
-                          className="w-full"
-                        >
+                        <Select filter showClear className="w-full">
                           {saleList?.map((item: any) => (
                             <Select.Option key={item.id} value={item.id}>
                               {item.name}
@@ -333,20 +351,7 @@ export default function IndividualClientRegistration() {
                           ))}
                         </Select>
                       </FieldDecorator>
-                      {/* <FieldDecorator
-                        required
-                        label="业务员 Sale"
-                        name="salesMan"
-                      >
-                        <Select filter showClear className="w-full">
-                          <Select.Option key="Echo Yu" value="Echo Yu">
-                            Echo Yu
-                          </Select.Option>
-                          <Select.Option key="Francis Li" value="Francis Li">
-                            Francis Li
-                          </Select.Option>
-                        </Select>
-                      </FieldDecorator> */}
+
                       <FieldDecorator
                         required
                         label="汇款目的 Purpose"
@@ -387,20 +392,6 @@ export default function IndividualClientRegistration() {
                       >
                         <Input />
                       </FieldDecorator>
-                      {/* <FieldDecorator label="业务员 Sale" name="saleId">
-                        <Select
-                          filter
-                          showClear
-                          onSearch={handleSaleSearch}
-                          className="w-full"
-                        >
-                          {saleList?.list.map((item) => (
-                            <Select.Option key={item.id} value={item.id}>
-                              {item.name}
-                            </Select.Option>
-                          ))}
-                        </Select>
-                      </FieldDecorator> */}
                     </PageSection>
                     <SectionTitle>居住信息</SectionTitle>
                     <PageSection>
@@ -514,6 +505,7 @@ export default function IndividualClientRegistration() {
                       >
                         <UploadFile />
                       </FieldDecorator>
+                      <div className="lg:block md:hidden sm:hidden" />
                       <FieldDecorator
                         required
                         label="身份证明2正面 front side of the identity certificate 2."
@@ -528,12 +520,13 @@ export default function IndividualClientRegistration() {
                       >
                         <UploadFile />
                       </FieldDecorator>
+                      <div className="lg:block md:hidden sm:hidden" />
                       <FieldDecorator
                         required
                         label="人脸识别照片 face recognition"
                         name="facePic"
                       >
-                        <UploadFile />
+                        <UploadFace />
                       </FieldDecorator>
                     </PageSection>
                   </>
@@ -616,6 +609,13 @@ export default function IndividualClientRegistration() {
                         required
                         label="收款人生日 Date of Birth"
                         name="b_dob"
+                        transformOut={(value) =>
+                          `${format(
+                            new Date(value),
+                            'yyyy-MM-dd'
+                          )}T00:00:00.000Z`
+                        }
+                        transformIn={(value) => new Date(value)}
                       >
                         <DatePicker className="w-full" />
                       </FieldDecorator>
@@ -753,13 +753,28 @@ export default function IndividualClientRegistration() {
                 )}
                 {page === 3 && (
                   <>
+                    <SectionTitle>信息确认及签名</SectionTitle>
                     <FieldDecorator
                       name="choose1"
                       valuePropName="checked"
+                      className="mb-6"
                       transformOut={(val: any) => val.target.checked}
                     >
                       <Checkbox extra="Please confirm all the information provided is true and correct">
                         请确认以上所提供信息是真实和正确的，并且确认提交
+                      </Checkbox>
+                    </FieldDecorator>
+                    <FieldDecorator
+                      name="choose2"
+                      valuePropName="checked"
+                      transformOut={(val: any) => val.target.checked}
+                    >
+                      <Checkbox extra="I agree to terms and conditions">
+                        我已阅读并同意以上
+                        <a style={{ color: 'blue' }} href="www.baidu.com">
+                          条款
+                        </a>
+                        。
                       </Checkbox>
                     </FieldDecorator>
                     <Controller

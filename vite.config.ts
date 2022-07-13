@@ -10,5 +10,15 @@ export default defineConfig({
       '#': path.resolve(__dirname, '.'),
     },
   },
+  server: {
+    host:'0.0.0.0',
+    proxy: {
+      '/api': {
+        target: 'http://192.168.2.20:8888/',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
+  },
   plugins: [react()]
 })
