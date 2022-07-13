@@ -1,7 +1,6 @@
 import { FormProvider, useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { format } from 'date-fns';
 import FieldDecorator from '@/components/FieldDecorator';
 import {
   Checkbox,
@@ -29,27 +28,27 @@ import UploadFace from '@/components/UploadFace';
 
 const schema = yup
   .object({
-    firstName: yup.string().required('请输入姓名'),
-    lastName: yup.string().required('请输入姓氏'),
-    gender: yup.string().required('请选择性别'),
-    dob: yup.string().required('请选择出生日期'),
-    email: yup.string().required('请输入邮箱').email('邮箱格式错误'),
-    phone: yup.string().required('请输入联系号码'),
-    saleId: yup.string().required('请选择业务员'),
-    purpose: yup.string().required('请选择汇款目的'),
-    otherPurpose: yup.string().when('purpose', {
-      is: 'Other',
-      then: yup.string().required('请输入其他汇款目的'),
-    }),
-    country: yup.string().required('请输入国家'),
-    state: yup.string().required('请输入所在州/省'),
-    suburb: yup.string().required('请输入区'),
-    address: yup.string().required('请输入地址'),
-    postcode: yup.string().required('请输入邮编'),
-    occupation: yup.string().required('请输入职业'),
-    employerName: yup.string().required('请输入雇主名字'),
-    annualIncome: yup.string().required('请输入年收入'),
-    sourceOfIncome: yup.string().required('请选择收入来源'),
+    // firstName: yup.string().required('请输入姓名'),
+    // lastName: yup.string().required('请输入姓氏'),
+    // gender: yup.string().required('请选择性别'),
+    // dob: yup.string().required('请选择出生日期'),
+    // email: yup.string().required('请输入邮箱').email('邮箱格式错误'),
+    // phone: yup.string().required('请输入联系号码'),
+    // saleId: yup.string().required('请选择业务员'),
+    // purpose: yup.string().required('请选择汇款目的'),
+    // otherPurpose: yup.string().when('purpose', {
+    //   is: 'Other',
+    //   then: yup.string().required('请输入其他汇款目的'),
+    // }),
+    // country: yup.string().required('请输入国家'),
+    // state: yup.string().required('请输入所在州/省'),
+    // suburb: yup.string().required('请输入区'),
+    // address: yup.string().required('请输入地址'),
+    // postcode: yup.string().required('请输入邮编'),
+    // occupation: yup.string().required('请输入职业'),
+    // employerName: yup.string().required('请输入雇主名字'),
+    // annualIncome: yup.string().required('请输入年收入'),
+    // sourceOfIncome: yup.string().required('请选择收入来源'),
     document1Front: yup.mixed().required('请上传身份证正面'),
     document1Back: yup.mixed().required('请上传身份证反面'),
     document2Front: yup.mixed().required('请上传护照正面'),
@@ -220,7 +219,6 @@ export default function IndividualClientRegistration() {
           onOk: handleSubmit,
           centered: true,
         });
-        return;
       }
     }
   };
@@ -315,13 +313,6 @@ export default function IndividualClientRegistration() {
                         required
                         label="出生日期 Date of Birth"
                         name="dob"
-                        transformOut={(value) =>
-                          `${format(
-                            new Date(value),
-                            'yyyy-MM-dd'
-                          )}T00:00:00.000Z`
-                        }
-                        transformIn={(value) => new Date(value)}
                       >
                         <DatePicker
                           className="w-full"
@@ -609,13 +600,6 @@ export default function IndividualClientRegistration() {
                         required
                         label="收款人生日 Date of Birth"
                         name="b_dob"
-                        transformOut={(value) =>
-                          `${format(
-                            new Date(value),
-                            'yyyy-MM-dd'
-                          )}T00:00:00.000Z`
-                        }
-                        transformIn={(value) => new Date(value)}
                       >
                         <DatePicker className="w-full" />
                       </FieldDecorator>

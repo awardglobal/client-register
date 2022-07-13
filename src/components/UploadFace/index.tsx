@@ -55,9 +55,9 @@ export default function UploadFile({ onChange, value }: PropsType) {
     e.stopPropagation();
   };
   return (
-    <div className="w-full  flex">
+    <div className="w-full  lg:flex">
       <Upload beforeUpload={beforeUpload}>
-        <div className="border-2 w-80 h-48 mr-12 text-center rounded overflow-hidden">
+        <div className="border-2 w-80 h-48 mr-12 text-center rounded overflow-hidden mb-2">
           {imgSmall ? (
             <div
               className="w-full h-full relative"
@@ -77,11 +77,7 @@ export default function UploadFile({ onChange, value }: PropsType) {
                   <img src={deleteIcon} className="w-12" onClick={deletePic} />
                 )}
               </div>
-              <img
-                src={imgSmall}
-                alt=""
-                className="w-full h-full transition ease-in-out"
-              />
+              <img src={imgSmall} alt="" className="w-full h-full " />
             </div>
           ) : (
             <>
