@@ -1,12 +1,17 @@
-// export default function CompanyClientRegistration() {
-//   return <div>CompanyClientRegistration</div>;
-// }
-
-import { FormProvider, useForm } from 'react-hook-form';
+import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import copy from 'copy-to-clipboard';
 import * as yup from 'yup';
 import FieldDecorator from '@/components/FieldDecorator';
-import { DatePicker, Input, Modal, Select, Steps } from '@douyinfe/semi-ui';
+import {
+  Checkbox,
+  DatePicker,
+  Input,
+  Modal,
+  Select,
+  Steps,
+  Toast,
+} from '@douyinfe/semi-ui';
 import { IconChevronRight, IconChevronLeft } from '@douyinfe/semi-icons';
 import { CSSTransition, SwitchTransition } from 'react-transition-group';
 import PageSection from './PageSection';
@@ -15,15 +20,89 @@ import './company.css';
 import classnames from 'classnames';
 import usePage from './usePage';
 import UploadFile from '@/components/UploadFile';
+import { addCompany, saleIdList } from '@/services/register';
 import { SectionTitle } from '@/components/Section';
 import Signature from '@/components/Signature';
 import complete from '@/assets/images/complete.svg';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const schema = yup
   .object({
-    // email: yup.string().email().required('请输入邮箱'),
-    // name: yup.string().required('请输入姓名'),
+    companyName: yup.string().required('请输入公司名称'),
+    entityType: yup.string().required('请输入公司类型'),
+    phone: yup.string().required('请输入联系号码'),
+    registeredAddress: yup.string().required('请输入公司注册地址'),
+    email: yup.string().required('请输入公司邮箱').email('邮箱格式错误'),
+    principalAddress: yup.string().required('请输入公司办公地址'),
+    saleId: yup.string().required('请选择业务员'),
+    purpose: yup.string().required('请选择汇款目的'),
+    otherPurpose: yup.string().when('purpose', {
+      is: 'Other',
+      then: yup.string().required('请输入其他汇款目的'),
+    }),
+    document1Front: yup.mixed().required('请上传证件1正面'),
+    document1Back: yup.mixed().required('请上传证件1反面'),
+    document2Front: yup.mixed().required('请上传证件2正面'),
+    document2Back: yup.mixed().required('请上传证件2反面'),
+    companyExtract: yup.mixed().required('请上传公司extract'),
+    accountHolderName: yup.string().required('请输入账户主要持有人姓名'),
+    accountHolderPosition: yup.string().required('请输入账户主要持有人职位'),
+    accountHolderDOB: yup.string().required('请输入账户主要持有人生日'),
+    accountHolderPhone: yup.string().required('请输入账户主要持有人联系号码'),
+    accountHolderEmail: yup
+      .string()
+      .required('请输入账户主要持有人邮箱')
+      .email('邮箱格式错误'),
+    accountHolderAddress: yup.string().required('请输入账户主要持有人地址'),
+    payeeType: yup.number().required('请选择收款人类型'),
+    b_bankName: yup.string().required('请输入银行名称'),
+    b_branchName: yup.string().required('请输入银行支行'),
+    b_accountName: yup.string().required('请输入银行账号名'),
+    b_accountNumber: yup.string().required('请输入银行账号'),
+    b_bsb_swiftCode: yup.string().required('请输入银行BSB/SWIFT代码'),
+    b_firstName: yup.string().when('payeeType', {
+      is: (arg: number) => arg === 0,
+      then: yup.string().required('请输入收款人姓名'),
+    }),
+    b_lastName: yup.string().when('payeeType', {
+      is: (arg: number) => arg === 0,
+      then: yup.string().required('请输入收款人姓氏'),
+    }),
+    b_name: yup.string().when('payeeType', {
+      is: (arg: number) => arg === 1,
+      then: yup.string().required('请输入收款公司名称'),
+    }),
+    b_dob: yup.string().when('payeeType', {
+      is: (arg: number) => arg === 0,
+      then: yup.string().required('请选择收款人出生日期'),
+    }),
+    b_phone: yup.string().required('请输入联系号码'),
+
+    b_occupation: yup.string().when('payeeType', {
+      is: (arg: number) => arg === 0,
+      then: yup.string().required('请输入收款人职业'),
+    }),
+    b_relation: yup.string().when('payeeType', {
+      is: (arg: number) => arg === 0,
+      then: yup.string().required('请选择收款人关系'),
+      otherwise: yup.string().required('请选择收款公司关系'),
+    }),
+    b_documentFront: yup.mixed().when('payeeType', {
+      is: (arg: number) => arg === 0,
+      then: yup.mixed().required('请上传证件1正面'),
+    }),
+    b_documentBack: yup.mixed().when('payeeType', {
+      is: (arg: number) => arg === 0,
+      then: yup.mixed().required('请上传证件1反面'),
+    }),
+    b_country: yup.string().required('请输入收款方所在国家'),
+    b_state: yup.string().required('请输入收款方所在州/省'),
+    b_suburb: yup.string().required('请输入收款方所在区'),
+    b_address: yup.string().required('请输入收款方街道地址'),
+    b_postcode: yup.string().required('请输入收款方邮编'),
+    choose1: yup.boolean().required('请选择').oneOf([true], '请确认上述信息'),
+    choose2: yup.boolean().required('请选择').oneOf([true], '请确认上述信息'),
+    signature: yup.mixed().required('请确认信息并签名'),
   })
   .required();
 
@@ -32,25 +111,108 @@ export default function IndividualClientRegistration() {
     maxPage: 4,
   });
   const contentRef = useRef<HTMLDivElement>(null);
+  const [saleList, setSaleList] = useState<any>([]);
+  const [no, setNo] = useState<string>('');
+  useEffect(() => {
+    saleIdList().then((res: any) => {
+      setSaleList(res.list);
+    });
+  }, []);
   const methods = useForm({
     resolver: yupResolver(schema),
-    mode: 'onTouched',
+    mode: 'onChange',
   });
+  const pageField: { [props: string]: string[] } = {
+    '1': [
+      'companyName',
+      'entityType',
+      'phone',
+      'registeredAddress',
+      'email',
+      'principalAddress',
+      'saleId',
+      'purpose',
+      'otherPurpose',
+      'document1Front',
+      'document1Back',
+      'document2Front',
+      'document2Back',
+      'companyExtract',
+    ],
+    '2': [
+      'accountHolderName',
+      'accountHolderPosition',
+      'accountHolderDOB',
+      'accountHolderPhone',
+      'accountHolderEmail',
+      'accountHolderAddress',
+    ],
+    '3': [
+      'choose1',
+      'choose2',
+      'payeeType',
+      'b_bankName',
+      'b_branchName',
+      'b_accountName',
+      'b_accountNumber',
+      'b_bsb_swiftCode',
+      'b_firstName',
+      'b_lastName',
+      'b_dob',
+      'b_phone',
+      'b_occupation',
+      'b_relation',
+      'b_country',
+      'b_state',
+      'b_suburb',
+      'b_address',
+      'b_postcode',
+      'b_documentFront',
+      'b_documentBack',
+      'b_name',
+      'b_relatedDoc',
+      'signature',
+    ],
+  };
 
-  const handleNext = (e?: any) => {
+  const handleNext = async (e?: any) => {
     window.scrollTo(0, 0);
     e?.preventDefault();
-    if (page === 3) {
-      Modal.confirm({
-        title: '确认提交?',
-        content: '请核实信息无误后提交',
-        onOk: nextPage,
-        centered: true,
-      });
-      return;
+    const validPage = await methods.trigger(pageField[page] ?? []);
+    if (!isLastPage && validPage) {
+      if (page !== 3) {
+        nextPage();
+      }
+      if (page === 3) {
+        Modal.confirm({
+          title: '确认提交?',
+          content: '请核实信息无误后提交',
+          onOk: handleSubmit,
+          centered: true,
+        });
+      }
     }
-    nextPage();
   };
+
+  const handleSubmit = methods.handleSubmit(async (values) => {
+    const { choose1, choose2, ...valueObj } = values;
+    const formData = new FormData();
+    for (const key in valueObj) {
+      if (valueObj[key] === undefined) {
+        continue;
+      }
+      formData.append(key, valueObj[key]);
+    }
+    const res: any = await addCompany(formData as any);
+    if (res.code == 0) {
+      setNo(res.data.registrationCode);
+      nextPage();
+      copy(res.data.registrationCode);
+      Toast.success('已复制到剪贴板');
+    } else {
+      Toast.error(res.data.msg);
+    }
+  });
   const handlePrevious = () => {
     previousPage();
   };
@@ -89,80 +251,81 @@ export default function IndividualClientRegistration() {
                     <SectionTitle isTop>基本信息</SectionTitle>
                     <PageSection>
                       <FieldDecorator
+                        required
                         label="公司名称 Entity Name"
-                        name="Entity Name"
+                        name="companyName"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
                         label="公司类型 Entity Type"
-                        name="EntityType"
+                        name="entityType"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="公司联系电话 Company Contact Number"
-                        name="companyNumber"
+                        name="phone"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         className="lg:col-span-2 md:col-span-1"
                         label="公司注册地址 Registered Business Address"
-                        name="RegisteredAddress"
+                        name="registeredAddress"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="公司邮箱 Company Email"
-                        name="companyEmail"
+                        name="email"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         className="lg:col-span-2 md:col-span-1"
                         label="公司主要营业地址 Principal Business Address"
-                        name="PrincipalAddress"
+                        name="principalAddress"
                       >
                         <Input />
                       </FieldDecorator>
-                      <FieldDecorator label="业务员 Salesman" name="salesMan">
+                      <FieldDecorator
+                        required
+                        label="业务员 Sale"
+                        name="saleId"
+                      >
                         <Select filter showClear className="w-full">
-                          <Select.Option key="Echo Yu" value="Echo Yu">
-                            Echo Yu
-                          </Select.Option>
-                          <Select.Option key="Francis Li" value="Francis Li">
-                            Francis Li
-                          </Select.Option>
-                        </Select>
-                      </FieldDecorator>
-
-                      {/* <FieldDecorator
-                        visible={purpose === 'Other'}
-                        hiddenWhenInvisible
-                        label="其他汇款目的 Other Purpose"
-                        name="otherPurpose"
-                      >
-                        <Input />
-                      </FieldDecorator> */}
-                      {/* <FieldDecorator label="业务员 Sale" name="saleId">
-                        <Select
-                          filter
-                          showClear
-                          onSearch={handleSaleSearch}
-                          className="w-full"
-                        >
-                          {saleList?.list.map((item) => (
+                          {saleList?.map((item: any) => (
                             <Select.Option key={item.id} value={item.id}>
                               {item.name}
                             </Select.Option>
                           ))}
                         </Select>
-                      </FieldDecorator> */}
-                      <FieldDecorator label="汇款目的 Purpose" name="purpose">
+                      </FieldDecorator>
+                      <FieldDecorator
+                        required
+                        label="汇款目的 Purpose"
+                        name="purpose"
+                      >
                         <Select filter showClear className="w-full">
                           <Select.Option key="provider" value="provider">
                             支付供应商 Provider
+                          </Select.Option>
+                          <Select.Option key="provider" value="provider">
+                            工资 Salary
+                          </Select.Option>
+                          <Select.Option key="provider" value="provider">
+                            买卖商业财产 Property
+                          </Select.Option>
+                          <Select.Option key="provider" value="provider">
+                            商业贷款/抵押/租金/账单 Loan/Mortgage/Rent/Billing
+                          </Select.Option>
+                          <Select.Option key="provider" value="provider">
+                            投资 Investment
                           </Select.Option>
                           <Select.Option key="other" value="Other">
                             其他
@@ -170,11 +333,15 @@ export default function IndividualClientRegistration() {
                         </Select>
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         visible={purpose === 'Other'}
                         hiddenWhenInvisible
                         label="其他汇款目的 Other Purpose"
                         name="otherPurpose"
                       >
+                        <Input />
+                      </FieldDecorator>
+                      <FieldDecorator label="ABN/ACN/ARBN" name="abn_acn_arbn">
                         <Input />
                       </FieldDecorator>
                     </PageSection>
@@ -186,33 +353,40 @@ export default function IndividualClientRegistration() {
                     </div>
                     <PageSection>
                       <FieldDecorator
+                        required
                         label="公司法人证件1正面 front side of legal person's ID"
-                        name="document1FrontId"
+                        name="document1Front"
                       >
                         <UploadFile />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="公司法人证件1背面 back side of legal person's ID"
-                        name="document1BackId"
+                        name="document1Back"
                       >
                         <UploadFile />
                       </FieldDecorator>
+                      <div className="lg:block md:hidden sm:hidden" />
                       <FieldDecorator
+                        required
                         label="公司法人证件2正面 front side of legal person's ID"
-                        name="document2FrontId"
+                        name="document2Front"
                       >
                         <UploadFile />
                       </FieldDecorator>
 
                       <FieldDecorator
+                        required
                         label="公司法人证件2背面 back side of legal person's ID"
-                        name="document2BackId"
+                        name="document2Back"
                       >
                         <UploadFile />
                       </FieldDecorator>
+                      <div className="lg:block md:hidden sm:hidden" />
                       <FieldDecorator
+                        required
                         label="Company extract"
-                        name="CompanyExtract"
+                        name="companyExtract"
                       >
                         <UploadFile />
                       </FieldDecorator>
@@ -223,34 +397,48 @@ export default function IndividualClientRegistration() {
                   <>
                     <SectionTitle isTop>账户主要持有人</SectionTitle>
                     <PageSection>
-                      <FieldDecorator label="名字 FirstName" name="firstName">
-                        <Input />
-                      </FieldDecorator>
-                      <FieldDecorator label="姓氏 LastName" name="lastName">
-                        <Input />
-                      </FieldDecorator>
-                      <FieldDecorator label="职位 Position" name="position">
-                        <Input />
-                      </FieldDecorator>
-                      <FieldDecorator label="出生日期 Date of Birth" name="dob">
-                        <DatePicker
-                          className="w-full"
-                          placeholder={'Select date'}
-                        />
-                      </FieldDecorator>
                       <FieldDecorator
-                        label="联系电话 Contact Number"
-                        name="ContactNumber"
+                        required
+                        label="姓名 name"
+                        name="accountHolderName"
                       >
                         <Input />
                       </FieldDecorator>
-                      <FieldDecorator label="邮箱 Email" name="email">
+                      <FieldDecorator
+                        required
+                        label="职位 Position"
+                        name="accountHolderPosition"
+                      >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
+                        label="出生日期 Date of Birth"
+                        name="accountHolderDOB"
+                        transformOut={(value: any) => value.toISOString()}
+                        transformIn={(value: any) => new Date(value)}
+                      >
+                        <DatePicker className="w-full" />
+                      </FieldDecorator>
+                      <FieldDecorator
+                        required
+                        label="联系电话 Contact Number"
+                        name="accountHolderPhone"
+                      >
+                        <Input />
+                      </FieldDecorator>
+                      <FieldDecorator
+                        required
+                        label="邮箱 Email"
+                        name="accountHolderEmail"
+                      >
+                        <Input />
+                      </FieldDecorator>
+                      <FieldDecorator
+                        required
                         className="lg:col-span-2 md:col-span-1"
                         label="住址 Resident Address"
-                        name="ResidentAddress"
+                        name="accountHolderAddress"
                       >
                         <Input />
                       </FieldDecorator>
@@ -262,6 +450,7 @@ export default function IndividualClientRegistration() {
                     <SectionTitle>收款方账户信息</SectionTitle>
                     <PageSection>
                       <FieldDecorator
+                        required
                         label="收款人类型 payee Type"
                         name="payeeType"
                       >
@@ -275,31 +464,36 @@ export default function IndividualClientRegistration() {
                         </Select>
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="银行名称 Bank Name"
                         name="b_bankName"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="开户行支行 Branch Name"
                         name="b_branchName"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="账户名称 Account Name"
                         name="b_accountName"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="账户信息 Account Number "
                         name="b_accountNumber"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
-                        label="账户信息 BSB/Swift Code"
+                        required
+                        label="BSB/Swift Code"
                         name="b_bsb_swiftCode"
                       >
                         <Input />
@@ -311,29 +505,72 @@ export default function IndividualClientRegistration() {
                   <>
                     <SectionTitle>收款人个人信息</SectionTitle>
                     <PageSection>
-                      <FieldDecorator label="收款人姓名 Name" name="b_name">
+                      <FieldDecorator
+                        required
+                        label="名字 FirstName"
+                        name="b_firstName"
+                      >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
+                        label="姓氏 LastName"
+                        name="b_lastName"
+                      >
+                        <Input />
+                      </FieldDecorator>
+                      <FieldDecorator
+                        required
                         label="出生日期 Date of birth"
                         name="b_dob"
+                        transformOut={(value: any) => value.toISOString()}
+                        transformIn={(value: any) => new Date(value)}
                       >
                         <DatePicker className="w-full" />
                       </FieldDecorator>
-                      <FieldDecorator label="收款人电话 Phone" name="b_phone">
+                      <FieldDecorator
+                        required
+                        label="收款人电话 Phone"
+                        name="b_phone"
+                      >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="收款人职业 Occupation"
                         name="b_occupation"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="与交易人关系 Relationship"
                         name="b_relation"
                       >
                         <Input />
+                      </FieldDecorator>
+                    </PageSection>
+                    <SectionTitle>收款人证件信息</SectionTitle>
+                    <div className="mb-6">
+                      需要提供收款人的一个证件正面及反面
+                      <br />
+                      Provide front and back side of beneficiary account
+                      holder's ID
+                    </div>
+                    <PageSection>
+                      <FieldDecorator
+                        required
+                        label="证件1(正面) front side of legal person's ID"
+                        name="b_documentFront"
+                      >
+                        <UploadFile />
+                      </FieldDecorator>
+                      <FieldDecorator
+                        required
+                        label="证件1(背面) back side of legal person's ID"
+                        name="b_documentBack"
+                      >
+                        <UploadFile />
                       </FieldDecorator>
                     </PageSection>
                   </>
@@ -343,25 +580,39 @@ export default function IndividualClientRegistration() {
                     <SectionTitle>收款公司信息</SectionTitle>
                     <PageSection>
                       <FieldDecorator
+                        required
                         label="收款公司名称 Company Name"
-                        name="c_name"
+                        name="b_name"
                       >
                         <Input />
                       </FieldDecorator>
-                      {/* <FieldDecorator label="收款人生日" name="b_dob">
-                        <DatePicker className="w-full" />
-                      </FieldDecorator> */}
                       <FieldDecorator
+                        required
                         label="收款公司电话 Company Phone"
-                        name="c_phone"
+                        name="b_phone"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="与交易人关系 Ralationship"
-                        name="c_relation"
+                        name="b_relation"
                       >
                         <Input />
+                      </FieldDecorator>
+                    </PageSection>
+                    <SectionTitle>收款人证件信息</SectionTitle>
+                    <div className="mb-6">
+                      需要提供与本次交易相关的证明文件。
+                      <br />
+                      Provide evidence related to the transaction
+                    </div>
+                    <PageSection>
+                      <FieldDecorator
+                        label="证明文件 evidence photo related to the transaction"
+                        name="b_relatedDoc"
+                      >
+                        <UploadFile />
                       </FieldDecorator>
                     </PageSection>
                   </>
@@ -370,19 +621,29 @@ export default function IndividualClientRegistration() {
                   <>
                     <SectionTitle>收款方地址信息</SectionTitle>
                     <PageSection>
-                      <FieldDecorator label="国家 Country" name="b_country">
+                      <FieldDecorator
+                        required
+                        label="国家 Country"
+                        name="b_country"
+                      >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="州 State/省 Province"
                         name="b_state"
                       >
                         <Input />
                       </FieldDecorator>
-                      <FieldDecorator label="区 Suburb" name="b_suburb">
+                      <FieldDecorator
+                        required
+                        label="区 Suburb"
+                        name="b_suburb"
+                      >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         className="lg:col-span-2 md:col-span-1"
                         label="街道地址 Street Address"
                         name="b_address"
@@ -390,41 +651,59 @@ export default function IndividualClientRegistration() {
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="邮政编码 Postcode"
                         name="b_postcode"
                       >
                         <Input />
                       </FieldDecorator>
                     </PageSection>
-                    <SectionTitle>收款方证件信息</SectionTitle>
-                    <div className="mb-6">
-                      需要提供收款人的一个证件正面及反面
-                      <br />
-                      Provide front and back side of beneficiary account
-                      holder's ID
-                    </div>
-                    <PageSection>
-                      <FieldDecorator
-                        label="证件1(正面) front side of legal person's ID"
-                        name="document1FrontId"
-                      >
-                        <UploadFile />
-                      </FieldDecorator>
-                      <FieldDecorator
-                        label="证件1(背面) back side of legal person's ID"
-                        name="document1BackId"
-                      >
-                        <UploadFile />
-                      </FieldDecorator>
-                    </PageSection>
-                    <Signature />
+
+                    <SectionTitle>信息确认及签名</SectionTitle>
+                    <FieldDecorator
+                      required
+                      name="choose1"
+                      valuePropName="checked"
+                      className="mb-6"
+                      transformOut={(val: any) => val.target.checked}
+                    >
+                      <Checkbox extra="Please confirm all the information provided is true and correct">
+                        请确认以上所提供信息是真实和正确的，并且确认提交
+                      </Checkbox>
+                    </FieldDecorator>
+                    <FieldDecorator
+                      required
+                      name="choose2"
+                      valuePropName="checked"
+                      transformOut={(val: any) => val.target.checked}
+                    >
+                      <Checkbox extra="I agree to terms and conditions">
+                        我已阅读并同意以上
+                        <a style={{ color: 'blue' }} href="www.baidu.com">
+                          条款
+                        </a>
+                        。
+                      </Checkbox>
+                    </FieldDecorator>
+                    <Controller
+                      name="signature"
+                      control={methods.control}
+                      render={({ field }) => {
+                        return (
+                          <Signature
+                            onChange={field.onChange}
+                            errors={methods.formState.errors}
+                          />
+                        );
+                      }}
+                    />
                   </>
                 )}
                 {page === 4 && (
                   <div className="h-full flex flex-col justify-center items-center mt-28">
                     <img src={complete} className="w-20" alt="" />
                     <div className="mt-8 mb-4 font-bold text-xl ">提交成功</div>
-                    您的回执编号为#1232121312321
+                    您的回执编号为 {no}
                   </div>
                 )}
                 <button type="submit" className="hidden" />

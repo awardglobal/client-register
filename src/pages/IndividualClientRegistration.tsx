@@ -25,30 +25,31 @@ import Signature from '@/components/Signature';
 import complete from '@/assets/images/complete.svg';
 import { addIndividual, saleIdList } from '@/services/register';
 import UploadFace from '@/components/UploadFace';
+import copy from 'copy-to-clipboard';
 
 const schema = yup
   .object({
-    // firstName: yup.string().required('请输入姓名'),
-    // lastName: yup.string().required('请输入姓氏'),
-    // gender: yup.string().required('请选择性别'),
-    // dob: yup.string().required('请选择出生日期'),
-    // email: yup.string().required('请输入邮箱').email('邮箱格式错误'),
-    // phone: yup.string().required('请输入联系号码'),
-    // saleId: yup.string().required('请选择业务员'),
-    // purpose: yup.string().required('请选择汇款目的'),
-    // otherPurpose: yup.string().when('purpose', {
-    //   is: 'Other',
-    //   then: yup.string().required('请输入其他汇款目的'),
-    // }),
-    // country: yup.string().required('请输入国家'),
-    // state: yup.string().required('请输入所在州/省'),
-    // suburb: yup.string().required('请输入区'),
-    // address: yup.string().required('请输入地址'),
-    // postcode: yup.string().required('请输入邮编'),
-    // occupation: yup.string().required('请输入职业'),
-    // employerName: yup.string().required('请输入雇主名字'),
-    // annualIncome: yup.string().required('请输入年收入'),
-    // sourceOfIncome: yup.string().required('请选择收入来源'),
+    firstName: yup.string().required('请输入姓名'),
+    lastName: yup.string().required('请输入姓氏'),
+    gender: yup.string().required('请选择性别'),
+    dob: yup.string().required('请选择出生日期'),
+    email: yup.string().required('请输入邮箱').email('邮箱格式错误'),
+    phone: yup.string().required('请输入联系号码'),
+    saleId: yup.string().required('请选择业务员'),
+    purpose: yup.string().required('请选择汇款目的'),
+    otherPurpose: yup.string().when('purpose', {
+      is: 'Other',
+      then: yup.string().required('请输入其他汇款目的'),
+    }),
+    country: yup.string().required('请输入国家'),
+    state: yup.string().required('请输入所在州/省'),
+    suburb: yup.string().required('请输入区'),
+    address: yup.string().required('请输入地址'),
+    postcode: yup.string().required('请输入邮编'),
+    occupation: yup.string().required('请输入职业'),
+    employerName: yup.string().required('请输入雇主名字'),
+    annualIncome: yup.string().required('请输入年收入'),
+    sourceOfIncome: yup.string().required('请选择收入来源'),
     document1Front: yup.mixed().required('请上传身份证正面'),
     document1Back: yup.mixed().required('请上传身份证反面'),
     document2Front: yup.mixed().required('请上传护照正面'),
@@ -105,11 +106,11 @@ const schema = yup
       is: (arg: number) => arg === 1,
       then: yup.string().required('请输入收款人邮编'),
     }),
-    b_document1Front: yup.mixed().when('b_beneficiaryType', {
+    b_documentFront: yup.mixed().when('b_beneficiaryType', {
       is: (arg: number) => arg === 1,
       then: yup.mixed().required('请上传收款人身份证正面'),
     }),
-    b_document1Back: yup.mixed().when('b_beneficiaryType', {
+    b_documentBack: yup.mixed().when('b_beneficiaryType', {
       is: (arg: number) => arg === 1,
       then: yup.mixed().required('请上传收款人身份证反面'),
     }),
@@ -184,8 +185,8 @@ const pageField: { [props: string]: string[] } = {
     'b_suburb',
     'b_address',
     'b_postcode',
-    'b_document1Front',
-    'b_document1Back',
+    'b_documentFront',
+    'b_documentBack',
     'b_trustAccount',
     'b_companyName',
     'b_companyAddress',
@@ -200,6 +201,7 @@ export default function IndividualClientRegistration() {
   });
   const contentRef = useRef<HTMLDivElement>(null);
   const [saleList, setSaleList] = useState<any>([]);
+  const [no, setNo] = useState<string>('');
   const methods = useForm({
     resolver: yupResolver(schema),
     mode: 'onChange',
@@ -238,7 +240,10 @@ export default function IndividualClientRegistration() {
     }
     const res: any = await addIndividual(formData as any);
     if (res.code == 0) {
+      setNo(res.data.registrationCode);
       nextPage();
+      copy(res.data.registrationCode);
+      Toast.success('已复制到剪贴板');
     } else {
       Toast.error(res.data.msg);
     }
@@ -313,6 +318,8 @@ export default function IndividualClientRegistration() {
                         required
                         label="出生日期 Date of Birth"
                         name="dob"
+                        transformOut={(value: any) => value.toISOString()}
+                        transformIn={(value: any) => new Date(value)}
                       >
                         <DatePicker
                           className="w-full"
@@ -600,6 +607,8 @@ export default function IndividualClientRegistration() {
                         required
                         label="收款人生日 Date of Birth"
                         name="b_dob"
+                        transformOut={(value: any) => value.toISOString()}
+                        transformIn={(value: any) => new Date(value)}
                       >
                         <DatePicker className="w-full" />
                       </FieldDecorator>
@@ -675,14 +684,14 @@ export default function IndividualClientRegistration() {
                       <FieldDecorator
                         required
                         label="收款人证件正面 front side of payee's ID"
-                        name="b_document1Front"
+                        name="b_documentFront"
                       >
                         <UploadFile />
                       </FieldDecorator>
                       <FieldDecorator
                         required
                         label="收款人证件背面 back side of payee's ID"
-                        name="b_document1Back"
+                        name="b_documentBack"
                       >
                         <UploadFile />
                       </FieldDecorator>
@@ -779,7 +788,7 @@ export default function IndividualClientRegistration() {
                   <div className="h-full flex flex-col justify-center items-center mt-28">
                     <img src={complete} className="w-20" alt="" />
                     <div className="mt-8 mb-4 font-bold text-xl ">提交成功</div>
-                    您的回执编号为#1232121312321
+                    您的回执编号为 {no}
                   </div>
                 )}
                 <button type="submit" className="hidden" />
