@@ -54,44 +54,44 @@ const schema = yup
       .required('请输入账户主要持有人邮箱')
       .email('邮箱格式错误'),
     accountHolderAddress: yup.string().required('请输入账户主要持有人地址'),
-    payeeType: yup.number().required('请选择收款人类型'),
+    b_beneficiaryType: yup.number().required('请选择收款人类型'),
     b_bankName: yup.string().required('请输入银行名称'),
     b_branchName: yup.string().required('请输入银行支行'),
     b_accountName: yup.string().required('请输入银行账号名'),
     b_accountNumber: yup.string().required('请输入银行账号'),
     b_bsb_swiftCode: yup.string().required('请输入银行BSB/SWIFT代码'),
-    b_firstName: yup.string().when('payeeType', {
+    b_firstName: yup.string().when('b_beneficiaryType', {
       is: (arg: number) => arg === 0,
       then: yup.string().required('请输入收款人姓名'),
     }),
-    b_lastName: yup.string().when('payeeType', {
+    b_lastName: yup.string().when('b_beneficiaryType', {
       is: (arg: number) => arg === 0,
       then: yup.string().required('请输入收款人姓氏'),
     }),
-    b_name: yup.string().when('payeeType', {
+    b_name: yup.string().when('b_beneficiaryType', {
       is: (arg: number) => arg === 1,
       then: yup.string().required('请输入收款公司名称'),
     }),
-    b_dob: yup.string().when('payeeType', {
+    b_dob: yup.string().when('b_beneficiaryType', {
       is: (arg: number) => arg === 0,
       then: yup.string().required('请选择收款人出生日期'),
     }),
     b_phone: yup.string().required('请输入联系号码'),
 
-    b_occupation: yup.string().when('payeeType', {
+    b_occupation: yup.string().when('b_beneficiaryType', {
       is: (arg: number) => arg === 0,
       then: yup.string().required('请输入收款人职业'),
     }),
-    b_relation: yup.string().when('payeeType', {
+    b_relation: yup.string().when('b_beneficiaryType', {
       is: (arg: number) => arg === 0,
       then: yup.string().required('请选择收款人关系'),
       otherwise: yup.string().required('请选择收款公司关系'),
     }),
-    b_documentFront: yup.mixed().when('payeeType', {
+    b_documentFront: yup.mixed().when('b_beneficiaryType', {
       is: (arg: number) => arg === 0,
       then: yup.mixed().required('请上传证件1正面'),
     }),
-    b_documentBack: yup.mixed().when('payeeType', {
+    b_documentBack: yup.mixed().when('b_beneficiaryType', {
       is: (arg: number) => arg === 0,
       then: yup.mixed().required('请上传证件1反面'),
     }),
@@ -150,7 +150,7 @@ export default function IndividualClientRegistration() {
     '3': [
       'choose1',
       'choose2',
-      'payeeType',
+      'b_beneficiaryType',
       'b_bankName',
       'b_branchName',
       'b_accountName',
@@ -216,7 +216,10 @@ export default function IndividualClientRegistration() {
   const handlePrevious = () => {
     previousPage();
   };
-  const [purpose, payeeType] = methods.watch(['purpose', 'payeeType']);
+  const [purpose, b_beneficiaryType] = methods.watch([
+    'purpose',
+    'b_beneficiaryType',
+  ]);
   return (
     <div className="register w-full h-full flex flex-col px-20 items-center overflow-auto">
       <FormProvider {...methods}>
@@ -452,7 +455,7 @@ export default function IndividualClientRegistration() {
                       <FieldDecorator
                         required
                         label="收款人类型 payee Type"
-                        name="payeeType"
+                        name="b_beneficiaryType"
                       >
                         <Select showClear className="w-full">
                           <Select.Option key="1" value={0}>
@@ -501,7 +504,7 @@ export default function IndividualClientRegistration() {
                     </PageSection>
                   </>
                 )}
-                {page === 3 && payeeType !== 1 && (
+                {page === 3 && b_beneficiaryType !== 1 && (
                   <>
                     <SectionTitle>收款人个人信息</SectionTitle>
                     <PageSection>
@@ -575,7 +578,7 @@ export default function IndividualClientRegistration() {
                     </PageSection>
                   </>
                 )}
-                {page === 3 && payeeType === 1 && (
+                {page === 3 && b_beneficiaryType === 1 && (
                   <>
                     <SectionTitle>收款公司信息</SectionTitle>
                     <PageSection>
