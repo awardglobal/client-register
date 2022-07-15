@@ -315,16 +315,16 @@ export default function IndividualClientRegistration() {
                           <Select.Option key="provider" value="provider">
                             支付供应商 Provider
                           </Select.Option>
-                          <Select.Option key="provider" value="provider">
+                          <Select.Option key="salary" value="salary">
                             工资 Salary
                           </Select.Option>
-                          <Select.Option key="provider" value="provider">
+                          <Select.Option key="property" value="property">
                             买卖商业财产 Property
                           </Select.Option>
-                          <Select.Option key="provider" value="provider">
+                          <Select.Option key="loan" value="loan">
                             商业贷款/抵押/租金/账单 Loan/Mortgage/Rent/Billing
                           </Select.Option>
-                          <Select.Option key="provider" value="provider">
+                          <Select.Option key="investment" value="investment">
                             投资 Investment
                           </Select.Option>
                           <Select.Option key="other" value="Other">
