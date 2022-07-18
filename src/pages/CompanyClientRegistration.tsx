@@ -458,10 +458,10 @@ export default function IndividualClientRegistration() {
                         name="b_beneficiaryType"
                       >
                         <Select showClear className="w-full">
-                          <Select.Option key="1" value={0}>
-                            汇款到本人账户 Remit to personal account
+                          <Select.Option key="1" value={2}>
+                            汇款到个人账户 Remit to personal account
                           </Select.Option>
-                          <Select.Option key="2" value={1}>
+                          <Select.Option key="2" value={3}>
                             汇款到公司账户 Remit to company's account
                           </Select.Option>
                         </Select>
