@@ -12,19 +12,32 @@ import {
   Steps,
   Toast,
 } from '@douyinfe/semi-ui';
-import { IconChevronRight, IconChevronLeft } from '@douyinfe/semi-icons';
+import {
+  IconChevronRight,
+  IconChevronLeft,
+  IconHelpCircleStroked,
+} from '@douyinfe/semi-icons';
 import { CSSTransition, SwitchTransition } from 'react-transition-group';
+
 import PageSection from './PageSection';
 import './fade_animate.css';
 import './company.css';
 import classnames from 'classnames';
 import usePage from './usePage';
 import UploadFile from '@/components/UploadFile';
-import { addCompany, saleIdList } from '@/services/register';
+import {
+  addCompany,
+  getSaleListService,
+  getAllCurrencyListService,
+} from '@/services/register';
 import { SectionTitle } from '@/components/Section';
 import Signature from '@/components/Signature';
 import complete from '@/assets/images/complete.svg';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import { useQuery } from 'react-query';
+import Flag from '@/components/Flag';
+import useValueDebounce from '@/hooks/useValueDebounce';
+import Textarea from '@douyinfe/semi-ui/lib/es/input/textarea';
 
 const schema = yup
   .object({
@@ -34,7 +47,30 @@ const schema = yup
     registeredAddress: yup.string().required('请输入公司注册地址'),
     email: yup.string().required('请输入公司邮箱').email('邮箱格式错误'),
     principalAddress: yup.string().required('请输入公司办公地址'),
-    saleId: yup.string().required('请选择业务员'),
+    saleId: yup.string().when('other_sale', {
+      is: (arg: boolean) => arg !== true,
+      then: yup.string().required('请选择业务员'),
+    }),
+    fromCurrency: yup.string().when('other_sale', {
+      is: (arg: boolean) => arg === true,
+      then: yup.string().required('请选择汇出币种'),
+    }),
+    toCurrency: yup.string().when('other_sale', {
+      is: (arg: boolean) => arg === true,
+      then: yup.string().required('请选择汇入币种'),
+    }),
+    amount: yup.string().when('other_sale', {
+      is: (arg: boolean) => arg === true,
+      then: yup.string().required('请输入汇款金额'),
+    }),
+    approximateExchangeTime: yup.string().when('other_sale', {
+      is: (arg: boolean) => arg === true,
+      then: yup.string().required('请选择汇款时间'),
+    }),
+    notes: yup.string().when('other_sale', {
+      is: (arg: boolean) => arg === true,
+      then: yup.string().required('请输入备注'),
+    }),
     purpose: yup.string().required('请选择汇款目的'),
     otherPurpose: yup.string().when('purpose', {
       is: 'Other',
@@ -111,13 +147,22 @@ export default function IndividualClientRegistration() {
     maxPage: 4,
   });
   const contentRef = useRef<HTMLDivElement>(null);
-  const [saleList, setSaleList] = useState<any>([]);
   const [no, setNo] = useState<string>('');
-  useEffect(() => {
-    saleIdList().then((res: any) => {
-      setSaleList(res.list);
-    });
-  }, []);
+  const [otherSale, setOtherSale] = useState<boolean>(false);
+  const [searchSaleName, setSearchSaleName] = useValueDebounce<string>({
+    milliseconds: 500,
+  });
+  const { data: allCurrencyList } = useQuery(
+    ['getAllCurrencyList'],
+    getAllCurrencyListService
+  );
+
+  const { data: saleList } = useQuery(['getSaleList', searchSaleName], () =>
+    getSaleListService({
+      name: searchSaleName,
+    })
+  );
+
   const methods = useForm({
     resolver: yupResolver(schema),
     mode: 'onChange',
@@ -131,6 +176,11 @@ export default function IndividualClientRegistration() {
       'email',
       'principalAddress',
       'saleId',
+      'fromCurrency',
+      'toCurrency',
+      'amount',
+      'approximateExchangeTime',
+      'notes',
       'purpose',
       'otherPurpose',
       'document1Front',
@@ -213,12 +263,18 @@ export default function IndividualClientRegistration() {
       Toast.error(res.data.msg);
     }
   });
+
+  const handleSaleSearch = (value: string) => {
+    setSearchSaleName(value);
+  };
   const handlePrevious = () => {
     previousPage();
   };
-  const [purpose, b_beneficiaryType] = methods.watch([
+  const [purpose, b_beneficiaryType, fromCurrency, toCurrency] = methods.watch([
     'purpose',
     'b_beneficiaryType',
+    'fromCurrency',
+    'toCurrency',
   ]);
   return (
     <div className="register w-full h-full flex flex-col px-20 items-center overflow-auto">
@@ -261,6 +317,7 @@ export default function IndividualClientRegistration() {
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
+                        required
                         label="公司类型 Entity Type"
                         name="entityType"
                       >
@@ -298,23 +355,10 @@ export default function IndividualClientRegistration() {
                       </FieldDecorator>
                       <FieldDecorator
                         required
-                        label="业务员 Sale"
-                        name="saleId"
-                      >
-                        <Select filter showClear className="w-full">
-                          {saleList?.map((item: any) => (
-                            <Select.Option key={item.id} value={item.id}>
-                              {item.name}
-                            </Select.Option>
-                          ))}
-                        </Select>
-                      </FieldDecorator>
-                      <FieldDecorator
-                        required
                         label="汇款目的 Purpose"
                         name="purpose"
                       >
-                        <Select filter showClear className="w-full">
+                        <Select className="w-full">
                           <Select.Option key="provider" value="provider">
                             支付供应商 Provider
                           </Select.Option>
@@ -344,10 +388,138 @@ export default function IndividualClientRegistration() {
                       >
                         <Input />
                       </FieldDecorator>
+
+                      {!otherSale && (
+                        <div className="relative">
+                          <FieldDecorator
+                            label="业务员 Sale"
+                            name="saleId"
+                            required
+                          >
+                            <Select
+                              filter
+                              className="w-full"
+                              onSearch={handleSaleSearch}
+                            >
+                              {saleList?.list.map((item) => (
+                                <Select.Option key={item.id} value={item.id}>
+                                  {item.name}
+                                </Select.Option>
+                              ))}
+                            </Select>
+                          </FieldDecorator>
+                          <div
+                            className="text-blue-500 cursor text-sm cursor-pointer absolute right-0 bottom-[-25px] flex items-center"
+                            onClick={() => {
+                              setOtherSale(true);
+                              methods.setValue('other_sale', true);
+                              methods.setValue('saleId', undefined);
+                            }}
+                          >
+                            <IconHelpCircleStroked className="pr-1" />
+                            <div>没有业务员?</div>
+                          </div>
+                        </div>
+                      )}
                       <FieldDecorator label="ABN/ACN/ARBN" name="abn_acn_arbn">
                         <Input />
                       </FieldDecorator>
                     </PageSection>
+                    {otherSale && (
+                      <>
+                        <SectionTitle>其他信息</SectionTitle>
+                        <div
+                          className="text-blue-500 cursor text-sm cursor-pointer mb-4 flex items-center"
+                          onClick={() => {
+                            setOtherSale(false);
+                            methods.setValue('other_sale', false);
+                            methods.setValue('fromCurrency', undefined);
+                            methods.setValue('toCurrency', undefined);
+                            methods.setValue('amount', undefined);
+                            methods.setValue(
+                              'approximateExchangeTime',
+                              undefined
+                            );
+                            methods.setValue('notes', undefined);
+                          }}
+                        >
+                          <IconHelpCircleStroked className="pr-1 " />
+                          已有业务员?
+                        </div>
+                        <PageSection>
+                          {/* <div className="relative"> */}
+                          <FieldDecorator
+                            label="汇出币种"
+                            name="fromCurrency"
+                            required
+                          >
+                            <Select className="w-full" showClear>
+                              {allCurrencyList?.list
+                                .filter((item: any) => item.id !== toCurrency)
+                                .map((currency: any) => (
+                                  <Select.Option
+                                    key={currency.id}
+                                    value={currency.id}
+                                  >
+                                    <div className="flex space-x-2">
+                                      <Flag name={currency.symbol} size={36} />
+                                      <div>{currency.name}</div>
+                                    </div>
+                                  </Select.Option>
+                                ))}
+                            </Select>
+                          </FieldDecorator>
+
+                          {/* </div> */}
+
+                          <FieldDecorator
+                            label="汇入币种"
+                            name="toCurrency"
+                            required
+                          >
+                            <Select className="w-full" showClear>
+                              {allCurrencyList?.list
+                                .filter((item: any) => item.id !== fromCurrency)
+                                .map((currency: any) => (
+                                  <Select.Option
+                                    key={currency.id}
+                                    value={currency.id}
+                                  >
+                                    <div className="flex space-x-2">
+                                      <Flag name={currency.symbol} size={36} />
+                                      <div>{currency.name}</div>
+                                    </div>
+                                  </Select.Option>
+                                ))}
+                            </Select>
+                          </FieldDecorator>
+
+                          <FieldDecorator
+                            label="汇出金额"
+                            name="amount"
+                            required
+                          >
+                            <Input />
+                          </FieldDecorator>
+
+                          <FieldDecorator
+                            required
+                            label="换汇时间"
+                            name="approximateExchangeTime"
+                          >
+                            <Select filter showClear className="w-full">
+                              <Select.Option value={0}>一周以内</Select.Option>
+                              <Select.Option value={1}>一月以内</Select.Option>
+                              <Select.Option value={2}>三月以内</Select.Option>
+                              <Select.Option value={3}>一年以内</Select.Option>
+                            </Select>
+                          </FieldDecorator>
+                          <FieldDecorator label="备注" name="notes" required>
+                            <Textarea />
+                          </FieldDecorator>
+                        </PageSection>
+                      </>
+                    )}
                     <SectionTitle>公司法人证件</SectionTitle>
                     <div className="mb-6">
                       需要提供两个公司法人证件的正面及反面
@@ -626,15 +798,16 @@ export default function IndividualClientRegistration() {
                     <PageSection>
                       <FieldDecorator
                         required
-                        label="国家 Country"
-                        name="b_country"
+                        className="lg:col-span-2 md:col-span-1"
+                        label="街道地址 Street Address"
+                        name="b_address"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
                         required
-                        label="州 State/省 Province"
-                        name="b_state"
+                        label="邮政编码 Postcode"
+                        name="b_postcode"
                       >
                         <Input />
                       </FieldDecorator>
@@ -647,16 +820,15 @@ export default function IndividualClientRegistration() {
                       </FieldDecorator>
                       <FieldDecorator
                         required
-                        className="lg:col-span-2 md:col-span-1"
-                        label="街道地址 Street Address"
-                        name="b_address"
+                        label="州 State/省 Province"
+                        name="b_state"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
                         required
-                        label="邮政编码 Postcode"
-                        name="b_postcode"
+                        label="国家 Country"
+                        name="b_country"
                       >
                         <Input />
                       </FieldDecorator>

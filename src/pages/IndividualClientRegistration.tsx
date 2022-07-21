@@ -11,7 +11,12 @@ import {
   Steps,
   Toast,
 } from '@douyinfe/semi-ui';
-import { IconChevronLeft, IconChevronRight } from '@douyinfe/semi-icons';
+import {
+  IconChevronLeft,
+  IconChevronRight,
+  IconHelpCircleStroked,
+} from '@douyinfe/semi-icons';
+import useValueDebounce from '@/hooks/useValueDebounce';
 import { CSSTransition, SwitchTransition } from 'react-transition-group';
 import PageSection from './PageSection';
 import './fade_animate.css';
@@ -20,12 +25,19 @@ import classnames from 'classnames';
 import usePage from './usePage';
 import UploadFile from '@/components/UploadFile';
 import { SectionTitle } from '@/components/Section';
-import { useRef, useState, useEffect } from 'react';
+import Flag from '@/components/Flag';
+import { useRef, useState } from 'react';
 import Signature from '@/components/Signature';
 import complete from '@/assets/images/complete.svg';
-import { addIndividual, saleIdList } from '@/services/register';
+import {
+  addIndividual,
+  getSaleListService,
+  getAllCurrencyListService,
+} from '@/services/register';
 import UploadFace from '@/components/UploadFace';
 import copy from 'copy-to-clipboard';
+import { useQuery } from 'react-query';
+import Textarea from '@douyinfe/semi-ui/lib/es/input/textarea';
 
 const schema = yup
   .object({
@@ -35,17 +47,36 @@ const schema = yup
     dob: yup.string().required('请选择出生日期'),
     email: yup.string().required('请输入邮箱').email('邮箱格式错误'),
     phone: yup.string().required('请输入联系号码'),
-    saleId: yup.string().required('请选择业务员'),
+    saleId: yup.string().when('other_sale', {
+      is: (arg: boolean) => arg !== true,
+      then: yup.string().required('请选择业务员'),
+    }),
+    fromCurrency: yup.string().when('other_sale', {
+      is: (arg: boolean) => arg === true,
+      then: yup.string().required('请选择汇出币种'),
+    }),
+    toCurrency: yup.string().when('other_sale', {
+      is: (arg: boolean) => arg === true,
+      then: yup.string().required('请选择汇入币种'),
+    }),
+    amount: yup.string().when('other_sale', {
+      is: (arg: boolean) => arg === true,
+      then: yup.string().required('请输入汇款金额'),
+    }),
+    approximateExchangeTime: yup.string().when('other_sale', {
+      is: (arg: boolean) => arg === true,
+      then: yup.string().required('请选择汇款时间'),
+    }),
+    notes: yup.string().when('other_sale', {
+      is: (arg: boolean) => arg === true,
+      then: yup.string().required('请输入备注'),
+    }),
     purpose: yup.string().required('请选择汇款目的'),
     otherPurpose: yup.string().when('purpose', {
       is: 'Other',
       then: yup.string().required('请输入其他汇款目的'),
     }),
-    country: yup.string().required('请输入国家'),
-    state: yup.string().required('请输入所在州/省'),
-    suburb: yup.string().required('请输入区'),
     address: yup.string().required('请输入地址'),
-    postcode: yup.string().required('请输入邮编'),
     occupation: yup.string().required('请输入职业'),
     employerName: yup.string().required('请输入雇主名字'),
     annualIncome: yup.string().required('请输入年收入'),
@@ -146,13 +177,14 @@ const pageField: { [props: string]: string[] } = {
     'email',
     'phone',
     'saleId',
+    'fromCurrency',
+    'toCurrency',
+    'amount',
+    'approximateExchangeTime',
+    'notes',
     'purpose',
     'otherPurpose',
-    'country',
-    'state',
-    'suburb',
     'address',
-    'postcode',
   ],
   '2': [
     'occupation',
@@ -200,8 +232,21 @@ export default function IndividualClientRegistration() {
     maxPage: 4,
   });
   const contentRef = useRef<HTMLDivElement>(null);
-  const [saleList, setSaleList] = useState<any>([]);
   const [no, setNo] = useState<string>('');
+  const [otherSale, setOtherSale] = useState<boolean>(false);
+  const [searchSaleName, setSearchSaleName] = useValueDebounce<string>({
+    milliseconds: 500,
+  });
+  const { data: allCurrencyList } = useQuery(
+    ['getAllCurrencyList'],
+    getAllCurrencyListService
+  );
+  const { data: saleList } = useQuery(['getSaleList', searchSaleName], () =>
+    getSaleListService({
+      name: searchSaleName,
+    })
+  );
+
   const methods = useForm({
     resolver: yupResolver(schema),
     mode: 'onChange',
@@ -227,11 +272,14 @@ export default function IndividualClientRegistration() {
   const handlePrevious = () => {
     previousPage();
   };
-  const [purpose, b_beneficiaryType, b_trustAccount] = methods.watch([
-    'purpose',
-    'b_beneficiaryType',
-    'b_trustAccount',
-  ]);
+  const [purpose, b_beneficiaryType, b_trustAccount, fromCurrency, toCurrency] =
+    methods.watch([
+      'purpose',
+      'b_beneficiaryType',
+      'b_trustAccount',
+      'fromCurrency',
+      'toCurrency',
+    ]);
   const handleSubmit = methods.handleSubmit(async (values) => {
     const { choose1, choose2, ...valueObj } = values;
     const formData = new FormData();
@@ -239,7 +287,7 @@ export default function IndividualClientRegistration() {
       formData.append(key, valueObj[key]);
     }
     const res: any = await addIndividual(formData as any);
-    if (res.code == 0) {
+    if (res.code === 0) {
       setNo(res.data.registrationCode);
       nextPage();
       copy(res.data.registrationCode);
@@ -248,12 +296,9 @@ export default function IndividualClientRegistration() {
       Toast.error(res.data.msg);
     }
   });
-
-  useEffect(() => {
-    saleIdList().then((res: any) => {
-      setSaleList(res.list);
-    });
-  }, []);
+  const handleSaleSearch = (value: string) => {
+    setSearchSaleName(value);
+  };
   return (
     <div className="register w-full h-full flex flex-col px-20 items-center overflow-auto">
       <FormProvider {...methods}>
@@ -306,7 +351,7 @@ export default function IndividualClientRegistration() {
                         label="性别 Gender"
                         name="gender"
                       >
-                        <Select filter showClear className="w-full">
+                        <Select className="w-full">
                           <Select.Option value={0}>男 Male</Select.Option>
                           <Select.Option value={1}>女 Female</Select.Option>
                           <Select.Option value={2}>
@@ -340,22 +385,12 @@ export default function IndividualClientRegistration() {
                       >
                         <Input />
                       </FieldDecorator>
-                      <FieldDecorator label="业务员 Sale" name="saleId">
-                        <Select filter showClear className="w-full">
-                          {saleList?.map((item: any) => (
-                            <Select.Option key={item.id} value={item.id}>
-                              {item.name}
-                            </Select.Option>
-                          ))}
-                        </Select>
-                      </FieldDecorator>
-
                       <FieldDecorator
                         required
                         label="汇款目的 Purpose"
                         name="purpose"
                       >
-                        <Select filter showClear className="w-full">
+                        <Select className="w-full">
                           <Select.Option key="Property" value="Property">
                             买房
                           </Select.Option>
@@ -390,26 +425,137 @@ export default function IndividualClientRegistration() {
                       >
                         <Input />
                       </FieldDecorator>
+                      {!otherSale && (
+                        <div className="relative">
+                          <FieldDecorator
+                            label="业务员 Sale"
+                            name="saleId"
+                            required
+                          >
+                            <Select
+                              filter
+                              className="w-full"
+                              onSearch={handleSaleSearch}
+                            >
+                              {saleList?.list.map((item) => (
+                                <Select.Option key={item.id} value={item.id}>
+                                  {item.name}
+                                </Select.Option>
+                              ))}
+                            </Select>
+                          </FieldDecorator>
+                          <div
+                            className="text-blue-500 cursor text-sm cursor-pointer absolute right-0 bottom-[-25px] flex items-center"
+                            onClick={() => {
+                              setOtherSale(true);
+                              methods.setValue('other_sale', true);
+                              methods.setValue('saleId', undefined);
+                            }}
+                          >
+                            <IconHelpCircleStroked className="pr-1" />
+                            <div>没有业务员?</div>
+                          </div>
+                        </div>
+                      )}
                     </PageSection>
+                    {otherSale && (
+                      <>
+                        <SectionTitle>其他信息</SectionTitle>
+                        <div
+                          className="text-blue-500 cursor text-sm cursor-pointer mb-4 flex items-center"
+                          onClick={() => {
+                            setOtherSale(false);
+                            methods.setValue('other_sale', false);
+                            methods.setValue('fromCurrency', undefined);
+                            methods.setValue('toCurrency', undefined);
+                            methods.setValue('amount', undefined);
+                            methods.setValue(
+                              'approximateExchangeTime',
+                              undefined
+                            );
+                            methods.setValue('notes', undefined);
+                          }}
+                        >
+                          <IconHelpCircleStroked className="pr-1 " />
+                          已有业务员?
+                        </div>
+                        <PageSection>
+                          {/* <div className="relative"> */}
+                          <FieldDecorator
+                            label="汇出币种"
+                            name="fromCurrency"
+                            required
+                          >
+                            <Select className="w-full" showClear>
+                              {allCurrencyList?.list
+                                .filter((item: any) => item.id !== toCurrency)
+                                .map((currency: any) => (
+                                  <Select.Option
+                                    key={currency.id}
+                                    value={currency.id}
+                                  >
+                                    <div className="flex space-x-2">
+                                      <Flag name={currency.symbol} size={36} />
+                                      <div>{currency.name}</div>
+                                    </div>
+                                  </Select.Option>
+                                ))}
+                            </Select>
+                          </FieldDecorator>
+
+                          {/* </div> */}
+
+                          <FieldDecorator
+                            label="汇入币种"
+                            name="toCurrency"
+                            required
+                          >
+                            <Select className="w-full" showClear>
+                              {allCurrencyList?.list
+                                .filter((item: any) => item.id !== fromCurrency)
+                                .map((currency: any) => (
+                                  <Select.Option
+                                    key={currency.id}
+                                    value={currency.id}
+                                  >
+                                    <div className="flex space-x-2">
+                                      <Flag name={currency.symbol} size={36} />
+                                      <div>{currency.name}</div>
+                                    </div>
+                                  </Select.Option>
+                                ))}
+                            </Select>
+                          </FieldDecorator>
+
+                          <FieldDecorator
+                            label="汇出金额"
+                            name="amount"
+                            required
+                          >
+                            <Input />
+                          </FieldDecorator>
+
+                          <FieldDecorator
+                            required
+                            label="换汇时间"
+                            name="approximateExchangeTime"
+                          >
+                            <Select filter showClear className="w-full">
+                              <Select.Option value={0}>一周以内</Select.Option>
+                              <Select.Option value={1}>一月以内</Select.Option>
+                              <Select.Option value={2}>三月以内</Select.Option>
+                              <Select.Option value={3}>一年以内</Select.Option>
+                            </Select>
+                          </FieldDecorator>
+                          <FieldDecorator label="备注" name="notes" required>
+                            <Textarea />
+                          </FieldDecorator>
+                        </PageSection>
+                      </>
+                    )}
+
                     <SectionTitle>居住信息</SectionTitle>
                     <PageSection>
-                      <FieldDecorator
-                        required
-                        label="国家 Country"
-                        name="country"
-                      >
-                        <Input />
-                      </FieldDecorator>
-                      <FieldDecorator
-                        required
-                        label="州 State/省 Province"
-                        name="state"
-                      >
-                        <Input />
-                      </FieldDecorator>
-                      <FieldDecorator required label="区 Suburb" name="suburb">
-                        <Input />
-                      </FieldDecorator>
                       <FieldDecorator
                         required
                         className="lg:col-span-2 md:col-span-1"
@@ -418,11 +564,16 @@ export default function IndividualClientRegistration() {
                       >
                         <Input />
                       </FieldDecorator>
-                      <FieldDecorator
-                        required
-                        label="邮政编码 Postcode"
-                        name="postcode"
-                      >
+                      <FieldDecorator label="邮政编码 Postcode" name="postcode">
+                        <Input />
+                      </FieldDecorator>
+                      <FieldDecorator label="区 Suburb" name="suburb">
+                        <Input />
+                      </FieldDecorator>
+                      <FieldDecorator label="州 State/省 Province" name="state">
+                        <Input />
+                      </FieldDecorator>
+                      <FieldDecorator label="国家 Country" name="country">
                         <Input />
                       </FieldDecorator>
                     </PageSection>
@@ -452,7 +603,7 @@ export default function IndividualClientRegistration() {
                         label="年收入 Annual Income"
                         name="annualIncome"
                       >
-                        <Select filter showClear className="w-full">
+                        <Select className="w-full">
                           <Select.Option key="Property" value="Property">
                             5-8万(AUD)
                           </Select.Option>
@@ -638,15 +789,16 @@ export default function IndividualClientRegistration() {
                     <PageSection>
                       <FieldDecorator
                         required
-                        label="国家 Country"
-                        name="b_country"
+                        className="lg:col-span-2 md:col-span-1"
+                        label="街道地址 Address"
+                        name="b_address"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
                         required
-                        label="州 State/省 Province"
-                        name="b_state"
+                        label="邮政编码 Postcode"
+                        name="b_postcode"
                       >
                         <Input />
                       </FieldDecorator>
@@ -659,16 +811,15 @@ export default function IndividualClientRegistration() {
                       </FieldDecorator>
                       <FieldDecorator
                         required
-                        className="lg:col-span-2 md:col-span-1"
-                        label="街道地址 Address"
-                        name="b_address"
+                        label="州 State/省 Province"
+                        name="b_state"
                       >
                         <Input />
                       </FieldDecorator>
                       <FieldDecorator
                         required
-                        label="邮政编码 Postcode"
-                        name="b_postcode"
+                        label="国家 Country"
+                        name="b_country"
                       >
                         <Input />
                       </FieldDecorator>

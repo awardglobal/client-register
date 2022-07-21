@@ -116,9 +116,18 @@ export async function addCompany(params: CompanyClientRegistrationRequest) {
   return res;
 }
 
-export async function saleIdList() {
+export async function getSaleListService(params: any) {
   const res = await requestAPI({
-    url: '/api/registration/getAllSales',
+    url: '/api/registration/getSaleList',
+    method: 'post',
+    data: params,
+  });
+  return res.data;
+}
+
+export async function getAllCurrencyListService() {
+  const res = await requestAPI({
+    url: '/api/registration/getAllCurrencyList',
     method: 'post',
   });
   return res.data;
